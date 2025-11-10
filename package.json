@@ -1,0 +1,10 @@
+{
+  "name": "stylegenai-root",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Root package.json is deprecated. Run npm commands inside AplicatiaMeaDeStil/",
+  "scripts": {
+    "start": "echo Please run commands inside AplicatiaMeaDeStil folder",
+    "postinstall": "echo No root install. cd AplicatiaMeaDeStil && npm install"
+  }
+}
