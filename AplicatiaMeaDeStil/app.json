@@ -4,32 +4,42 @@
     "slug": "AplicatiaMeaDeStil",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/images/icon.png",
     "scheme": "myapp",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.student.aplicatiameadestil",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Aplicația are nevoie de cameră pentru a fotografia hainele.",
+        "NSPhotoLibraryUsageDescription": "Aplicația are nevoie de acces la galerie pentru a încărca hainele.",
+        "NSPhotoLibraryAddUsageDescription": "Aplicația vrea să salveze rezultatele în galeria ta."
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/images/favicon.png"
     },
-    
     "plugins": [
-      "expo-router", 
-      [ 
+      "expo-router",
+      [
         "expo-image-picker",
         {
           "photosPermission": "Aplicația are nevoie de acces la galeria ta foto pentru a putea selecta hainele.",
@@ -37,7 +47,6 @@
         }
       ]
     ],
-
     "experiments": {
       "typedRoutes": true
     }

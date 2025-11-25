@@ -1,0 +1,22 @@
+{
+  "product_domains": [
+    "aboutyou.ro",
+    "answear.ro",
+    "asos.com",
+    "mrporter.com",
+    "zara.com",
+    "hm.com",
+    "bershka.com",
+    "pullandbear.com",
+    "reserved.com",
+    "fashiondays.ro"
+  ],
+  "editorial_domains": [
+    "gq.com",
+    "hypebeast.com",
+    "esquire.com",
+    "menshealth.com"
+  ],
+  "allow_fallback": true,
+  "product_only": false
+}
