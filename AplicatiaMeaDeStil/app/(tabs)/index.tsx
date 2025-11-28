@@ -21,6 +21,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import SilhouetteSuplu from './assets/silhouette_suplu.png';
 import SilhouetteMediu from './assets/silhouette_mediu.png';
 import SilhouetteRobust from './assets/silhouette_robust.png';
+import WebOutfitList, { WebItem } from '../../components/WebOutfitList';
 
 const DEFAULT_BACKEND_URL = Platform.OS === 'web' ? 'http://localhost:5000' : 'http://192.168.100.182:5000';
 
@@ -144,6 +145,33 @@ const isBackendError = (payload: BackendResponse): payload is BackendErrorRespon
     (payload as { status?: unknown }).status === 'error'
   );
 };
+
+// Helper: transform WebOutfitSuggestion to WebOutfitList expected format
+function transformWebOutfit(webOutfit: WebOutfitSuggestion): {
+  outerwear?: WebItem;
+  top?: WebItem;
+  bottom?: WebItem;
+  shoes?: WebItem;
+} {
+  // Helper to coerce OutfitPiece to WebItem
+  function toWebItem(piece?: OutfitPiece): WebItem | undefined {
+    if (!piece) return undefined;
+    return {
+      path: typeof piece.path === 'string' ? piece.path : '',
+      title: piece.title ?? '',
+      source_url: piece.source_url ?? '',
+      source_domain: piece.source_domain ?? '',
+      alternatives: (piece as any).alternatives ?? [],
+      category: piece.category ?? '',
+    };
+  }
+  return {
+    outerwear: toWebItem((webOutfit as any).outerwear),
+    top: toWebItem(webOutfit.top),
+    bottom: toWebItem(webOutfit.bottom),
+    shoes: toWebItem(webOutfit.shoes),
+  };
+}
 
 const App = () => {
   const [selectedStyle, setSelectedStyle] = useState<StyleOption>('Casual');
@@ -572,7 +600,6 @@ const App = () => {
         )}
 
         {isLoading && <ActivityIndicator size="large" color="#007AFF" style={styles.loading} />}
-
         {outfitSuggestion && !isLoading && (
           <View style={styles.resultContainer}>
             {'error' in outfitSuggestion ? (
@@ -584,52 +611,17 @@ const App = () => {
               </>
             ) : (
               <>
-                <CompareOutfits
-                  mySuggestion={outfitSuggestion}
-                  webSuggestion={webOutfit}
-                  baseUrl={backendUrl}
-                />
-                {/* Articolele încărcate (grilă compactă) */}
-                <View style={{ marginTop: 16, width: '100%' }}>
-                  <Text style={styles.resultSectionTitle}>Articolele trimise:</Text>
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                    {selectedItems.map(item => (
-                      <View key={item.id} style={{ width: '30%', aspectRatio: 1, backgroundColor: '#f2f3f7', borderRadius: 10, overflow: 'hidden' }}>
-                        <Image source={{ uri: item.uri }} style={{ width: '100%', height: '100%' }} />
-                      </View>
-                    ))}
-                  </View>
+                {/* Garderoba utilizatorului */}
+                <View style={{ marginTop: 24 }}>
+                  <Text style={styles.resultSectionTitle}>Din garderoba ta:</Text>
+                  <CompareOutfits mySuggestion={outfitSuggestion} webSuggestion={null} baseUrl={backendUrl} />
                 </View>
-                {/* Afișăm recomandările lipsă dacă există */}
-                {'analysis' in outfitSuggestion && (outfitSuggestion as OutfitSuggestion).analysis.missing_recommendations?.length ? (
-                  <View style={{ marginTop: 10, width: '100%' }}>
-                    <Text style={styles.resultSectionTitle}>Recomandări de completare:</Text>
-                    {(outfitSuggestion as OutfitSuggestion).analysis.missing_recommendations!.map(r => (
-                      <Text key={r} style={{ fontSize: 14, marginBottom: 4 }}>• {r}</Text>
-                    ))}
+                {/* Propuneri din Web cu logo-uri */}
+                {webOutfit && (
+                  <View style={{ marginTop: 24 }}>
+                    <WebOutfitList outfitData={transformWebOutfit(webOutfit)} style={selectedStyle} />
                   </View>
-                ) : null}
-                {/* Accent recomandat dacă există */}
-                {'analysis' in outfitSuggestion && (outfitSuggestion as OutfitSuggestion).analysis && (outfitSuggestion as any).analysis.recommended_accent_hex ? (
-                  <View style={{ marginTop: 12, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <View style={{
-                      width: 22,
-                      height: 22,
-                      borderRadius: 6,
-                      backgroundColor: (outfitSuggestion as any).analysis.recommended_accent_hex,
-                      borderWidth: 1,
-                      borderColor: '#444'
-                    }} />
-                    <Text style={{ fontSize: 14 }}>
-                      Accent recomandat: {(outfitSuggestion as any).analysis.recommended_accent_hex}
-                    </Text>
-                  </View>
-                ) : null}
-                {'analysis' in outfitSuggestion && typeof (outfitSuggestion as OutfitSuggestion).analysis.score === 'number' ? (
-                  <Text style={{ marginTop: 10, fontSize: 14, fontWeight: '600' }}>
-                    Scor ținută: {(outfitSuggestion as OutfitSuggestion).analysis.score!.toFixed(2)}
-                  </Text>
-                ) : null}
+                )}
                 <TouchableOpacity style={styles.resetButton} onPress={resetApp}>
                   <Text style={styles.resetButtonText}>Creează o altă ținută</Text>
                 </TouchableOpacity>
@@ -810,11 +802,10 @@ const CompareOutfits: React.FC<CompareOutfitsProps> = ({ mySuggestion, webSugges
     { label: 'Pantaloni/ Fustă', piece: left.bottom },
     { label: 'Încălțăminte', piece: left.shoes },
   ];
-
   const rightCards = [
-    { label: 'Top (web)', piece: right.top },
-    { label: 'Pantaloni/ Fustă (web)', piece: right.bottom },
-    { label: 'Încălțăminte (web)', piece: right.shoes },
+    { label: 'Top', piece: right.top },
+    { label: 'Pantaloni/ Fustă', piece: right.bottom },
+    { label: 'Încălțăminte', piece: right.shoes },
   ];
 
   const renderColumn = (title: string, cards: { label: string; piece?: OutfitPiece }[]) => (
@@ -867,7 +858,7 @@ const CompareOutfits: React.FC<CompareOutfitsProps> = ({ mySuggestion, webSugges
   return (
     <View style={styles.compareContainer}>
       {renderColumn('Din garderoba ta', leftCards)}
-      {renderColumn('Propunere din web', rightCards)}
+      {webSuggestion && (right.top || right.bottom || right.shoes) ? renderColumn('Propuneri din Web', rightCards) : null}
     </View>
   );
 };

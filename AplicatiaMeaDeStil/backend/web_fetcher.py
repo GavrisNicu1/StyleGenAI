@@ -25,6 +25,28 @@ CSE_ID = os.getenv("GOOGLE_CSE_ID")
 PREMIUM_BRANDS = ["Calvin Klein", "Tommy Hilfiger", "Guess", "Ralph Lauren", "Massimo Dutti", "Hugo Boss", "Gant", "Lacoste"]
 SPORT_BRANDS = ["Nike", "Adidas", "Jordan", "New Balance", "Puma", "Under Armour", "Converse"]
 CASUAL_BRANDS = ["Zara", "H&M", "Bershka", "Pull&Bear", "Levis", "Jack & Jones", "Mango Man"]
+# --- MAPARE STIL -> SITE-URI ---
+STYLE_SITE_MAP = {
+    "elegant": [
+        {"name": "Massimo Dutti", "url": "https://www.massimodutti.com/ro/"},
+        {"name": "Seroussi", "url": "https://seroussi.ro/"},
+        {"name": "Hugo Boss", "url": "https://www.hugoboss.com/ro/"},
+        {"name": "Tommy Hilfiger", "url": "https://ro.tommy.com/"},
+        {"name": "AboutYou", "url": "https://www.aboutyou.ro/"},
+    ],
+    "sport": [
+        {"name": "Nike", "url": "https://www.nike.com/ro/"},
+        {"name": "Adidas", "url": "https://www.adidas.ro/"},
+        {"name": "Under Armour", "url": "https://www.underarmour.ro/"},
+        {"name": "AboutYou", "url": "https://www.aboutyou.ro/"},
+    ],
+    "casual": [
+        {"name": "AboutYou", "url": "https://www.aboutyou.ro/"},
+        {"name": "Tommy Hilfiger", "url": "https://ro.tommy.com/"},
+        {"name": "Zara", "url": "https://www.zara.com/ro/"},
+        {"name": "Ralph Lauren", "url": "https://www.ralphlauren.eu/ro/"},
+    ],
+}
 
 CATEGORY_QUERY_BASE = {
     "outerwear": "geci jachete",
