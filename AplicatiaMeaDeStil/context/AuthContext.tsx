@@ -79,9 +79,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await response.json();
       console.log('[AuthContext] Response data:', data);
 
-      if (data.status === 'error') {
+      if (!response.ok || data.status === 'error') {
         console.error('[AuthContext] Login error:', data.message);
-        throw new Error(data.message || 'Login failed');
+        throw new Error(data.message || 'Email sau parolă incorectă');
       }
 
       const { token: newToken, user: newUser } = data;

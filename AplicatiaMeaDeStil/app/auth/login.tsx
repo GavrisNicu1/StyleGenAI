@@ -7,15 +7,17 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const { login } = useAuth();
 
   const handleLogin = async () => {
     console.log('[LOGIN] Starting login process...');
     console.log('[LOGIN] Email:', email);
+    setErrorMessage(''); // Resetează mesajul de eroare
     
     if (!email.trim() || !password.trim()) {
       console.log('[LOGIN] Validation failed - empty fields');
-      Alert.alert('Error', 'Please enter both email and password');
+      setErrorMessage('Te rugăm să completezi email-ul și parola');
       return;
     }
 
@@ -27,7 +29,8 @@ export default function LoginScreen() {
       router.replace('/(tabs)');
     } catch (error: any) {
       console.error('[LOGIN] Login failed:', error);
-      Alert.alert('Login Failed', error.message || 'Invalid credentials');
+      setPassword(''); // Golește câmpul de parolă
+      setErrorMessage('Email sau parolă incorectă');
     } finally {
       setLoading(false);
       console.log('[LOGIN] Process complete');
@@ -44,6 +47,12 @@ export default function LoginScreen() {
         <Text style={styles.subtitle}>Sign in to continue</Text>
 
         <View style={styles.form}>
+          {errorMessage ? (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{errorMessage}</Text>
+            </View>
+          ) : null}
+
           <TextInput
             style={styles.input}
             placeholder="Email"
@@ -168,5 +177,19 @@ const styles = StyleSheet.create({
     color: '#007AFF',
     fontSize: 14,
     fontWeight: '600',
+  },
+  errorContainer: {
+    backgroundColor: '#ffebee',
+    borderWidth: 1,
+    borderColor: '#ef5350',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
+  errorText: {
+    color: '#c62828',
+    fontSize: 14,
+    textAlign: 'center',
+    fontWeight: '500',
   },
 });
