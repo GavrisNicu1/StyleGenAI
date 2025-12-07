@@ -24,6 +24,26 @@ from styling_engine.tryon_warp import compose_on_mannequin, remove_bg as remove_
 # Propunere din web (nou)
 from web_fetcher import get_web_outfit
 
+# Authentication & Outfits
+from auth import register_user, login_user, get_current_user, verify_jwt_token, require_admin, reset_user_password
+from outfits import save_outfit, get_user_outfits, toggle_outfit_like, delete_outfit, get_outfit_by_id
+from database import execute_query_one
+from admin import (
+    get_dashboard_stats, 
+    get_activity_chart_data, 
+    get_style_distribution,
+    get_top_users,
+    get_all_users,
+    get_recent_outfits
+)
+from ai_metrics import (
+    log_generation,
+    get_generation_statistics,
+    get_style_popularity,
+    get_generation_timeline,
+    get_common_errors
+)
+
 # ---------------- Config de bază ----------------
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})  # restrânge în producție
@@ -65,8 +85,23 @@ def health() -> Any:
 # ---------------- /get_suggestion (multipart) ----------------
 @app.post("/get_suggestion")
 def get_suggestion():
+    import time
+    start_time = time.time()
+    
+    # Get user_id from token if authenticated
+    user_id = None
+    try:
+        auth_header = request.headers.get('Authorization')
+        if auth_header and auth_header.startswith('Bearer '):
+            token = auth_header.split(' ')[1]
+            user_data = verify_jwt_token(token)
+            if user_data:
+                user_id = user_data.get('user_id')
+    except Exception:
+        pass
+    
     if "files" not in request.files:
-        return jsonify({"status": "error", "message": "Lipsește ‘files’"}), 400
+        return jsonify({"status": "error", "message": "Lipsește 'files'"}), 400
 
     uploaded_files = request.files.getlist("files")
     categories = request.form.getlist("categories")
@@ -74,6 +109,9 @@ def get_suggestion():
     season = request.form.get("season", "toamna/primavara").lower()
     gender = request.form.get("gender", "barbati").lower()
     silhouette = request.form.get("silhouette", "mediu").lower()
+
+    print(f"[DEBUG] Received categories: {categories}")
+    print(f"[DEBUG] Files count: {len(uploaded_files)}, Categories count: {len(categories)}")
 
     if (not uploaded_files) or (not categories) or (len(uploaded_files) != len(categories)):
         return jsonify({"status": "error", "message": "Datele trimise nu se potrivesc."}), 400
@@ -116,12 +154,22 @@ def get_suggestion():
 
     filters = {"style": style_filter, "season": season, "gender": gender, "silhouette": silhouette}
     print(f"[INFO] Generez ținuta pentru filtre: {filters}")
-    outfit_suggestion = generate_suggestion(item_data, filters)
+    
+    try:
+        outfit_suggestion = generate_suggestion(item_data, filters)
 
-    if outfit_suggestion.get("error"):
-        return jsonify({"status": "error", "message": outfit_suggestion.get("error")})
+        if outfit_suggestion.get("error"):
+            processing_time = time.time() - start_time
+            log_generation(user_id, style_filter, season, gender, processing_time, False, outfit_suggestion.get("error"))
+            return jsonify({"status": "error", "message": outfit_suggestion.get("error")})
 
-    return jsonify({"status": "success", "outfit_suggestion": outfit_suggestion})
+        processing_time = time.time() - start_time
+        log_generation(user_id, style_filter, season, gender, processing_time, True, None)
+        return jsonify({"status": "success", "outfit_suggestion": outfit_suggestion})
+    except Exception as e:
+        processing_time = time.time() - start_time
+        log_generation(user_id, style_filter, season, gender, processing_time, False, str(e))
+        return jsonify({"status": "error", "message": f"Generation failed: {e}"}), 500
 
 
 # ---------------- /web_outfit (JSON) ----------------
@@ -146,6 +194,21 @@ def web_outfit():
     Body(JSON): { style_filter, season, gender, trend_colors? }
     Return: { status: 'success', web_outfit: { top, bottom, shoes } }
     """
+    import time
+    start_time = time.time()
+    
+    # Get user_id from token if authenticated
+    user_id = None
+    try:
+        auth_header = request.headers.get('Authorization')
+        if auth_header and auth_header.startswith('Bearer '):
+            token = auth_header.split(' ')[1]
+            user_data = verify_jwt_token(token)
+            if user_data:
+                user_id = user_data.get('user_id')
+    except Exception:
+        pass
+    
     try:
         payload = request.get_json(silent=True) or {}
         style_filter = str(payload.get("style_filter", "casual")).lower()
@@ -171,8 +234,13 @@ def web_outfit():
 
         trend_colors = from_payload or _load_trend_colors()
         web_suggestion = get_web_outfit(style_filter, season, gender, trend_colors, piece_colors or None)
+        
+        processing_time = time.time() - start_time
+        log_generation(user_id, style_filter, season, gender, processing_time, True, None)
         return jsonify({"status": "success", "web_outfit": web_suggestion}), 200
     except Exception as e:
+        processing_time = time.time() - start_time
+        log_generation(user_id, style_filter, season, gender, processing_time, False, str(e))
         return jsonify({"status": "error", "message": f"web_outfit failed: {e}"}), 500
 
 
@@ -297,6 +365,265 @@ def trends_update():
         return jsonify({"status": "success", "trends": data})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ---------------- Authentication Endpoints ----------------
+
+@app.post("/auth/register")
+def auth_register():
+    """Register a new user"""
+    try:
+        data = request.get_json(force=True, silent=True) or {}
+        email = data.get("email", "").strip()
+        password = data.get("password", "").strip()
+        
+        if not email or not password:
+            return jsonify({"status": "error", "message": "Email and password are required"}), 400
+        
+        if len(password) < 6:
+            return jsonify({"status": "error", "message": "Password must be at least 6 characters"}), 400
+        
+        result = register_user(email, password)
+        return jsonify(result), 201
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 400
+
+
+@app.post("/auth/login")
+def auth_login():
+    """Login a user"""
+    try:
+        data = request.get_json(force=True, silent=True) or {}
+        email = data.get("email", "").strip()
+        password = data.get("password", "").strip()
+        
+        print(f"[LOGIN] Attempting login for email: {email}")
+        
+        if not email or not password:
+            print("[LOGIN] Missing email or password")
+            return jsonify({"status": "error", "message": "Email and password are required"}), 400
+        
+        print("[LOGIN] Calling login_user()...")
+        result = login_user(email, password)
+        print(f"[LOGIN] Success! User: {result.get('user', {}).get('email')}")
+        return jsonify(result), 200
+    except Exception as e:
+        print(f"[LOGIN] Error: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 401
+
+
+@app.post("/auth/reset-password")
+def auth_reset_password():
+    """Reset user password"""
+    try:
+        data = request.get_json(force=True, silent=True) or {}
+        email = data.get("email", "").strip()
+        
+        print(f"[RESET_PASSWORD] Request for email: {email}")
+        
+        if not email:
+            print("[RESET_PASSWORD] Missing email")
+            return jsonify({"status": "error", "message": "Email is required"}), 400
+        
+        print("[RESET_PASSWORD] Calling reset_user_password()...")
+        result = reset_user_password(email)
+        print(f"[RESET_PASSWORD] Success! New password generated for: {email}")
+        return jsonify({
+            "status": "success",
+            "message": "Password reset successfully",
+            "new_password": result['new_password']
+        }), 200
+    except Exception as e:
+        print(f"[RESET_PASSWORD] Error: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 400
+
+
+@app.get("/auth/me")
+def auth_me():
+    """Get current user from token"""
+    try:
+        auth_header = request.headers.get("Authorization", "")
+        if not auth_header.startswith("Bearer "):
+            return jsonify({"status": "error", "message": "Invalid authorization header"}), 401
+        
+        token = auth_header.replace("Bearer ", "")
+        user = get_current_user(token)
+        return jsonify({"status": "success", "user": user}), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 401
+
+
+# ---------------- Outfits Endpoints ----------------
+
+def _get_user_from_token():
+    """Helper to extract user_id from JWT token"""
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        raise Exception("Missing or invalid authorization header")
+    
+    token = auth_header.replace("Bearer ", "")
+    payload = verify_jwt_token(token)
+    return payload.get("user_id")
+
+
+@app.post("/outfits/save")
+def outfits_save():
+    """Save a new outfit for the authenticated user"""
+    try:
+        user_id = _get_user_from_token()
+        data = request.get_json(force=True, silent=True) or {}
+        
+        image_url = data.get("image_url", "").strip()
+        style_data = data.get("style_data", {})
+        
+        print(f"[DEBUG] Save outfit request - user_id: {user_id}, image_url: {image_url}, style_data keys: {list(style_data.keys())}")
+        
+        # Verify user exists in database
+        verify_query = "SELECT id FROM users WHERE id = ?"
+        user_exists = execute_query_one(verify_query, (user_id,))
+        
+        if not user_exists:
+            print(f"[ERROR] User {user_id} not found in database - token may be invalid")
+            return jsonify({"status": "error", "message": "User not found. Please log in again."}), 401
+        
+        if not image_url:
+            print("[ERROR] Missing image_url in request")
+            return jsonify({"status": "error", "message": "image_url is required and cannot be empty"}), 400
+        
+        if not style_data:
+            print("[WARN] Empty style_data in request")
+        
+        result = save_outfit(user_id, image_url, style_data)
+        print(f"[SUCCESS] Outfit saved successfully - outfit_id: {result.get('outfit', {}).get('id')}")
+        return jsonify({"status": "success", **result}), 201
+    except Exception as e:
+        print(f"[ERROR] Save outfit failed: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 400
+
+
+@app.get("/outfits/history")
+def outfits_history():
+    """Get all outfits for the authenticated user"""
+    try:
+        user_id = _get_user_from_token()
+        liked_only = request.args.get("liked_only", "false").lower() == "true"
+        
+        outfits = get_user_outfits(user_id, liked_only)
+        return jsonify({"status": "success", "outfits": outfits}), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 400
+
+
+@app.post("/outfits/<int:outfit_id>/like")
+def outfits_like(outfit_id: int):
+    """Toggle like status for an outfit"""
+    try:
+        user_id = _get_user_from_token()
+        result = toggle_outfit_like(outfit_id, user_id)
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 400
+
+
+@app.delete("/outfits/<int:outfit_id>")
+def outfits_delete(outfit_id: int):
+    """Delete an outfit"""
+    try:
+        user_id = _get_user_from_token()
+        result = delete_outfit(outfit_id, user_id)
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 400
+
+
+@app.get("/outfits/<int:outfit_id>")
+def outfits_get(outfit_id: int):
+    """Get a specific outfit by ID"""
+    try:
+        user_id = _get_user_from_token()
+        outfit = get_outfit_by_id(outfit_id, user_id)
+        return jsonify({"status": "success", "outfit": outfit}), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 400
+
+
+# ---------------- Admin Endpoints ----------------
+
+def _get_admin_from_token():
+    """Helper to verify admin access from JWT token"""
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        raise Exception("Missing or invalid authorization header")
+    
+    token = auth_header.replace("Bearer ", "")
+    admin_user = require_admin(token)
+    return admin_user
+
+
+@app.get("/admin/dashboard")
+def admin_dashboard():
+    """Get admin dashboard statistics (admin only)"""
+    try:
+        _get_admin_from_token()  # Verify admin access
+        
+        # Get all statistics
+        stats = get_dashboard_stats()
+        activity_data = get_activity_chart_data(days=7)
+        style_dist = get_style_distribution()
+        top_users = get_top_users(limit=5)
+        recent_outfits = get_recent_outfits(limit=10)
+        
+        return jsonify({
+            "status": "success",
+            "dashboard": {
+                "stats": stats,
+                "activity_chart": activity_data,
+                "style_distribution": style_dist,
+                "top_users": top_users,
+                "recent_outfits": recent_outfits
+            }
+        }), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 403
+
+
+@app.get("/admin/users")
+def admin_users():
+    """Get all users list (admin only)"""
+    try:
+        _get_admin_from_token()  # Verify admin access
+        
+        users = get_all_users()
+        return jsonify({
+            "status": "success",
+            "users": users
+        }), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 403
+
+
+@app.get("/admin/ai-metrics")
+def admin_ai_metrics():
+    """Get AI generation metrics and analytics (admin only)"""
+    try:
+        _get_admin_from_token()  # Verify admin access
+        
+        stats = get_generation_statistics()
+        style_popularity = get_style_popularity()
+        timeline = get_generation_timeline(days=7)
+        common_errors = get_common_errors(limit=5)
+        
+        return jsonify({
+            "status": "success",
+            "ai_metrics": {
+                "statistics": stats,
+                "style_popularity": style_popularity,
+                "timeline": timeline,
+                "common_errors": common_errors
+            }
+        }), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 403
 
 
 # ---------------- Entrypoint dev ----------------

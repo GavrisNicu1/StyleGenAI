@@ -17,7 +17,9 @@ import * as WebBrowser from 'expo-web-browser';
 import { Camera } from 'expo-camera';
 import Modal from 'react-native-modal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { FontAwesome } from '@expo/vector-icons';
+import { FontAwesome, Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import { useAuth } from '@/context/AuthContext';
 import SilhouetteSuplu from './assets/silhouette_suplu.png';
 import SilhouetteMediu from './assets/silhouette_mediu.png';
 import SilhouetteRobust from './assets/silhouette_robust.png';
@@ -25,7 +27,13 @@ import WebOutfitList, { WebItem } from '../../components/WebOutfitList';
 
 const DEFAULT_BACKEND_URL = Platform.OS === 'web' ? 'http://localhost:5000' : 'http://192.168.100.182:5000';
 
-const CLOTHING_CATEGORIES = ['Geacă', 'Tricou', 'Bluză', 'Pantalon', 'Fustă', 'Altul'] as const;
+const BASE_CLOTHING_CATEGORIES = ['Geacă', 'Tricou', 'Bluză', 'Pantalon', 'Fustă', 'Altul'] as const;
+const CLOTHING_CATEGORIES = BASE_CLOTHING_CATEGORIES; // Alias for type compatibility
+const SHORTS = 'Pantaloni scurți';
+const SHIRT = 'Cămașă';
+const JACKET = 'Sacou';
+const COAT = 'Palton';
+const SUIT = 'Costum';
 const FOOTWEAR_CATEGORIES = ['Adidași', 'Pantofi', 'Ghete', 'Altele'] as const;
 
 type ClothingCategory = (typeof CLOTHING_CATEGORIES)[number];
@@ -33,14 +41,98 @@ type FootwearCategory = (typeof FOOTWEAR_CATEGORIES)[number];
 type CategoryType = 'îmbrăcăminte' | 'încălțăminte';
 type WardrobeCategory = ClothingCategory | FootwearCategory;
 
-const CATEGORIES: Record<CategoryType, readonly WardrobeCategory[]> = {
-  îmbrăcăminte: CLOTHING_CATEGORIES,
-  încălțăminte: FOOTWEAR_CATEGORIES,
-};
+
+function getCategories({ categoryType, season, style, gender }: {
+  categoryType: CategoryType;
+  season: SeasonOption;
+  style: StyleOption;
+  gender: GenderOption;
+}): readonly WardrobeCategory[] {
+  if (categoryType === 'încălțăminte') return FOOTWEAR_CATEGORIES;
+
+  // Implementare finală pentru Casual, bărbați
+  if (style === 'Casual' && gender === 'Barbati') {
+    if (season === 'Vara') {
+      return [
+        'Vesta',
+        'Cămașă',
+        'Compleuri și Treninguri',
+        'Bluze și Hanorace',
+        'Tricou',
+        'Pantalon',
+        'Blugi',
+        'Pantaloni scurți',
+      ];
+    } else {
+      // Toamna/Primavara, Iarna
+      return [
+        'Geacă',
+        'Palton',
+        'Vesta',
+        'Cămașă',
+        'Compleuri și Treninguri',
+        'Pulovere și cardigane',
+        'Bluze și Hanorace',
+        'Tricou',
+        'Pantalon',
+        'Blugi',
+      ];
+    }
+  }
+  // Elegant, bărbați
+  if (style === 'Elegant' && gender === 'Barbati') {
+    if (season === 'Vara') {
+      return [
+        'Costume',
+        'Sacouri',
+        'Cămăși',
+        'Pantalon',
+      ];
+    } else {
+      // Toamnă/Primăvară, Iarna
+      return [
+        'Paltoane',
+        'Geci',
+        'Costume',
+        'Sacouri',
+        'Cămăși',
+        'Malete și Pulovere',
+        'Pantalon',
+      ];
+    }
+  }
+  // Sport, bărbați
+  if (style === 'Sport' && gender === 'Barbati') {
+    if (season === 'Vara') {
+      return [
+        'Veste',
+        'Treninguri',
+        'Bluze',
+        'Pantalon',
+        'Colanți',
+        'Pantaloni scurți',
+      ];
+    } else {
+      // Toamnă/Primăvară, Iarna
+      return [
+        'Geci',
+        'Veste',
+        'Treninguri',
+        'Bluze',
+        'Pantalon',
+        'Colanți',
+        'Pantaloni scurți',
+      ];
+    }
+  }
+  
+  // Default fallback pentru alte combinații de style/gender
+  return BASE_CLOTHING_CATEGORIES;
+}
 
 const PIECE_COLOR_LABELS: Record<string, string> = {
   top: 'Top',
-  bottom: 'Pantaloni',
+  bottom: 'Pantalon',
   shoes: 'Pantofi',
   outerwear: 'Strat exterior',
 };
@@ -146,8 +238,41 @@ const isBackendError = (payload: BackendResponse): payload is BackendErrorRespon
   );
 };
 
+// Map Romanian categories to backend categories
+const mapCategoryToBackend = (category: string): string => {
+  const lowerCategory = category.toLowerCase();
+  
+  // Mapping for clothing items (îmbrăcăminte) -> "Top"
+  if (lowerCategory.includes('tricou') || lowerCategory.includes('bluză') || 
+      lowerCategory.includes('cămașă') || lowerCategory.includes('geacă') ||
+      lowerCategory.includes('sacou') || lowerCategory.includes('palton') ||
+      lowerCategory.includes('costum') || lowerCategory === 'altul') {
+    return 'Top';
+  }
+  
+  // Mapping for bottoms (pantaloni/fuste) -> "Pantalon"
+  if (lowerCategory.includes('pantalon') || lowerCategory.includes('fustă') ||
+      lowerCategory.includes('shorts') || lowerCategory.includes('scurți')) {
+    return 'Pantalon';
+  }
+  
+  // Mapping for footwear (încălțăminte) -> "Pantof"
+  if (lowerCategory.includes('adidași') || lowerCategory.includes('pantofi') ||
+      lowerCategory.includes('ghete') || lowerCategory.includes('încălțăminte') ||
+      lowerCategory === 'altele') {
+    return 'Pantof';
+  }
+  
+  // Fallback
+  return 'Top';
+};
+
 // Helper: transform WebOutfitSuggestion to WebOutfitList expected format
-function transformWebOutfit(webOutfit: WebOutfitSuggestion): {
+function transformWebOutfit(
+  webOutfit: WebOutfitSuggestion,
+  style: StyleOption,
+  season: SeasonOption
+): {
   outerwear?: WebItem;
   top?: WebItem;
   bottom?: WebItem;
@@ -165,15 +290,43 @@ function transformWebOutfit(webOutfit: WebOutfitSuggestion): {
       category: piece.category ?? '',
     };
   }
-  return {
+  let result = {
     outerwear: toWebItem((webOutfit as any).outerwear),
     top: toWebItem(webOutfit.top),
     bottom: toWebItem(webOutfit.bottom),
     shoes: toWebItem(webOutfit.shoes),
   };
+
+  // Adăugare automată geacă/palton la propuneri web pentru sezon rece dacă lipsește
+  // Folosim parametrii primiți
+  if ((season === 'Toamna/Primavara' || season === 'Iarna') && !result.outerwear) {
+    if (style === 'Elegant') {
+      // Palton elegant
+      result.outerwear = {
+        path: '',
+        title: 'Palton elegant de sezon',
+        source_url: 'https://www.fashiondays.ro/g/barbati/paltoane',
+        source_domain: 'fashiondays.ro',
+        alternatives: [],
+        category: 'Palton',
+      };
+    } else {
+      // Geacă universală
+      result.outerwear = {
+        path: '',
+        title: 'Geacă de sezon rece',
+        source_url: 'https://www.aboutyou.ro/c/barbati/haine/geci-20320',
+        source_domain: 'aboutyou.ro',
+        alternatives: [],
+        category: 'Geacă',
+      };
+    }
+  }
+  return result;
 }
 
 const App = () => {
+  const { isAuthenticated, user, logout } = useAuth();
   const [selectedStyle, setSelectedStyle] = useState<StyleOption>('Casual');
   const [selectedSeason, setSelectedSeason] = useState<SeasonOption>('Toamna/Primavara');
   const [selectedGender, setSelectedGender] = useState<GenderOption>('Barbati');
@@ -181,12 +334,24 @@ const App = () => {
   const [selectedItems, setSelectedItems] = useState<WardrobeItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [outfitSuggestion, setOutfitSuggestion] = useState<OutfitResult | null>(null);
+  const [outfitSaved, setOutfitSaved] = useState(false); // Track if current outfit is saved
   const [webOutfit, setWebOutfit] = useState<WebOutfitSuggestion | null>(null);
   const [isCategoryModalVisible, setCategoryModalVisible] = useState(false);
   const [isSourceModalVisible, setSourceModalVisible] = useState(false);
   const [currentCategoryType, setCurrentCategoryType] = useState<CategoryType>('îmbrăcăminte');
   const [currentCategory, setCurrentCategory] = useState<WardrobeCategory | null>(null);
   const [backendUrl, setBackendUrl] = useState<string>(DEFAULT_BACKEND_URL);
+
+  // Redirect to login if not authenticated (with safety check)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!isAuthenticated) {
+        router.replace('/auth/login');
+      }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [isAuthenticated]);
+
   useEffect(() => {
     (async () => {
       try {
@@ -310,7 +475,7 @@ const App = () => {
           const ext = (mime.split('/')[1] || 'jpg').toLowerCase();
           const file = new File([blob], `photo_${index}.${ext}`, { type: mime });
           formData.append('files', file);
-          formData.append('categories', item.category);
+          formData.append('categories', item.category); // Send original Romanian category
         } catch (e) {
           console.warn('Failed to make File from URI', item.uri, e);
         }
@@ -325,7 +490,7 @@ const App = () => {
           type: `image/${fileType}`,
         } as const;
         formData.append('files', file as unknown as Blob);
-        formData.append('categories', item.category);
+        formData.append('categories', item.category); // Send original Romanian category
       });
     }
     // Mismatch warning (should be equal)
@@ -348,8 +513,10 @@ const App = () => {
       });
 
       const result: BackendResponse = await response.json();
+      console.log('Backend response:', result);
 
       if (isBackendSuccess(result)) {
+        console.log('Success! Processing outfit...');
         // Normalizăm piesele: dacă path lipsește, folosim transparent_path sau original_path
         const normalized: OutfitSuggestion = {
           top: normalizePiece(result.outfit_suggestion.top),
@@ -357,7 +524,9 @@ const App = () => {
           shoes: normalizePiece(result.outfit_suggestion.shoes),
           analysis: result.outfit_suggestion.analysis,
         };
+        console.log('Normalized outfit:', normalized);
         setOutfitSuggestion(normalized);
+        setOutfitSaved(false); // Reset saved state when new outfit is generated
         // Cerem și alternativa din web, opțional
         fetchWebAlternative({
           style: selectedStyle,
@@ -367,6 +536,7 @@ const App = () => {
           pieceColors: normalized.analysis?.piece_colors,
         });
       } else if (isBackendError(result)) {
+        console.log('Backend error:', result.message);
         setOutfitSuggestion({ error: result.message ?? 'Eroare de la server.' });
       } else {
         setOutfitSuggestion({ error: 'Răspuns neașteptat de la server.' });
@@ -434,15 +604,155 @@ const App = () => {
     setSelectedSilhouette('Mediu');
     setCurrentCategory(null);
   };
+
+  const handleSaveToHistory = async () => {
+    console.log('[SAVE] Starting save process...');
+    console.log('[SAVE] isAuthenticated:', isAuthenticated);
+    console.log('[SAVE] outfitSuggestion exists:', !!outfitSuggestion);
+    console.log('[SAVE] outfitSaved:', outfitSaved);
+    
+    // Check if outfit is already saved
+    if (outfitSaved) {
+      Alert.alert('Deja salvat', 'Acest outfit a fost deja salvat în Profil.');
+      return;
+    }
+    
+    if (!outfitSuggestion || 'error' in outfitSuggestion || !isAuthenticated) {
+      Alert.alert('Eroare', 'Nu există outfit de salvat sau nu ești autentificat');
+      console.log('[SAVE] Validation failed - missing outfit or not authenticated');
+      return;
+    }
+
+    try {
+      const token = await AsyncStorage.getItem('auth_token');
+      console.log('[SAVE] Token exists:', !!token);
+      
+      if (!token) {
+        Alert.alert('Eroare', 'Token de autentificare lipsește');
+        return;
+      }
+
+      // Construiește URL-ul imaginii outfit-ului (folosim prima piesă disponibilă ca reprezentare)
+      const firstPiece = outfitSuggestion.top || outfitSuggestion.bottom || outfitSuggestion.shoes;
+      
+      // Verificăm dacă există o piesă cu path valid
+      if (!firstPiece || !firstPiece.path) {
+        Alert.alert('Eroare', 'Nu există imagini în outfit pentru salvare');
+        console.error('[SAVE] No valid piece with path found:', { top: outfitSuggestion.top, bottom: outfitSuggestion.bottom, shoes: outfitSuggestion.shoes });
+        return;
+      }
+
+      const imageUrl = toAbsoluteUrl(firstPiece.path, backendUrl);
+      
+      if (!imageUrl) {
+        Alert.alert('Eroare', 'URL imagine invalid');
+        console.error('[SAVE] Invalid image URL generated from path:', firstPiece.path);
+        return;
+      }
+
+      console.log('[SAVE] Saving outfit with image URL:', imageUrl);
+
+      // Construiește datele de stil
+      const styleData = {
+        style: selectedStyle,
+        season: selectedSeason,
+        gender: selectedGender,
+        silhouette: selectedSilhouette,
+        pieces: {
+          top: outfitSuggestion.top,
+          bottom: outfitSuggestion.bottom,
+          shoes: outfitSuggestion.shoes,
+        },
+        analysis: outfitSuggestion.analysis,
+      };
+
+      console.log('[SAVE] Calling API:', `${backendUrl}/outfits/save`);
+      const response = await fetch(`${backendUrl}/outfits/save`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          image_url: imageUrl,
+          style_data: styleData,
+        }),
+      });
+
+      console.log('[SAVE] Response status:', response.status);
+      const result = await response.json();
+      console.log('[SAVE] Response data:', result);
+
+      if (response.status === 401) {
+        // Token invalid - logout and redirect to login
+        Alert.alert('Sesiune expirată', 'Te rugăm să te autentifici din nou.', [
+          {
+            text: 'OK',
+            onPress: async () => {
+              await logout();
+              router.replace('/auth/login');
+            },
+          },
+        ]);
+        return;
+      }
+
+      if (result.status === 'success') {
+        console.log('[SAVE] Outfit saved successfully!');
+        setOutfitSaved(true); // Mark outfit as saved
+        console.log('[SAVE] outfitSaved set to true');
+        Alert.alert(
+          '✓ Salvat cu succes!', 
+          'Outfit-ul a fost salvat în Profil. Poți să-l vezi accesând profilul tău.',
+          [
+            { text: 'OK', style: 'default' },
+            { 
+              text: 'Vezi Profilul', 
+              onPress: () => router.push('/(tabs)/profile'),
+              style: 'default'
+            }
+          ]
+        );
+      } else {
+        console.log('[SAVE] Save failed:', result.message);
+        Alert.alert('Eroare', result.message || 'Nu s-a putut salva outfit-ul');
+      }
+    } catch (error) {
+      console.error('[SAVE] Error:', error);
+      Alert.alert('Eroare', 'Nu s-a putut salva outfit-ul. Verifică conexiunea.');
+    }
+  };
+
   // Eliminat: handleComposeOnMannequin (concept manechin).
 
   return (
     <ScrollView style={styles.page} contentContainerStyle={styles.scrollContent}>
       <View style={styles.container}>
+        {/* Auth Header */}
+        <View style={styles.authHeader}>
+          {isAuthenticated && user ? (
+            <TouchableOpacity 
+              onPress={() => router.push('/(tabs)/profile')} 
+              style={styles.profileButton}
+            >
+              <Ionicons name="person-circle" size={32} color="#007AFF" />
+              <Text style={styles.profileButtonText}>{user.email}</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity 
+              onPress={() => router.push('/auth/login')} 
+              style={styles.loginButton}
+            >
+              <Ionicons name="person-outline" size={20} color="#007AFF" />
+              <Text style={styles.loginText}>Login</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
         <Modal isVisible={isCategoryModalVisible} onBackdropPress={() => setCategoryModalVisible(false)}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Alege categoria</Text>
-            {CATEGORIES[currentCategoryType].map(category => (
+            {getCategories({ categoryType: currentCategoryType, season: selectedSeason, style: selectedStyle, gender: selectedGender }).map(category => (
               <TouchableOpacity key={category} style={styles.categoryButton} onPress={() => onCategorySelect(category)}>
                 <Text>{category}</Text>
               </TouchableOpacity>
@@ -619,9 +929,28 @@ const App = () => {
                 {/* Propuneri din Web cu logo-uri */}
                 {webOutfit && (
                   <View style={{ marginTop: 24 }}>
-                    <WebOutfitList outfitData={transformWebOutfit(webOutfit)} style={selectedStyle} />
+                    <WebOutfitList outfitData={transformWebOutfit(webOutfit, selectedStyle, selectedSeason)} style={selectedStyle} />
                   </View>
                 )}
+                
+                {/* Save to Profile Button */}
+                {isAuthenticated && (
+                  <TouchableOpacity 
+                    style={[styles.saveButton, outfitSaved && styles.saveButtonDisabled]} 
+                    onPress={handleSaveToHistory}
+                    disabled={outfitSaved}
+                  >
+                    <Ionicons 
+                      name={outfitSaved ? "checkmark-circle" : "heart-outline"} 
+                      size={20} 
+                      color="#fff" 
+                    />
+                    <Text style={styles.saveButtonText}>
+                      {outfitSaved ? 'Salvat ✓' : 'Salvează în Profil'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
                 <TouchableOpacity style={styles.resetButton} onPress={resetApp}>
                   <Text style={styles.resetButtonText}>Creează o altă ținută</Text>
                 </TouchableOpacity>
@@ -1218,6 +1547,26 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
   },
+  saveButton: {
+    marginTop: 16,
+    backgroundColor: '#27ae60',
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  saveButtonDisabled: {
+    backgroundColor: '#95a5a6',
+    opacity: 0.6,
+  },
+  saveButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
   modalContent: {
     backgroundColor: 'white',
     padding: 22,
@@ -1260,5 +1609,48 @@ const styles = StyleSheet.create({
     height: 360,
     borderRadius: 20,
     backgroundColor: '#fafafa',
+  },
+  authHeader: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    zIndex: 100,
+  },
+  profileButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#007AFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  profileButtonText: {
+    color: '#007AFF',
+    fontWeight: '600',
+    fontSize: 13,
+    maxWidth: 150,
+  },
+  loginButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#007AFF',
+  },
+  loginText: {
+    color: '#007AFF',
+    fontWeight: '600',
   },
 });
