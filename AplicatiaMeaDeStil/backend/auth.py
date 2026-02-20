@@ -6,6 +6,8 @@ import jwt
 import os
 import secrets
 import string
+from functools import wraps
+from flask import request, jsonify
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from database import execute_query, execute_query_one
@@ -16,6 +18,34 @@ JWT_SECRET = os.getenv('JWT_SECRET_KEY', 'your-secret-key')
 JWT_ALGORITHM = os.getenv('JWT_ALGORITHM', 'HS256')
 # 30 days = 720 hours - token valid pentru 30 zile
 JWT_EXPIRATION_HOURS = int(os.getenv('JWT_EXPIRATION_HOURS', 720))
+
+
+def token_required(f):
+    """
+    Decorator to protect routes with JWT token auth
+    """
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = None
+        if 'Authorization' in request.headers:
+            auth_header = request.headers['Authorization']
+            if auth_header and auth_header.startswith("Bearer "):
+                token = auth_header.split(" ")[1]
+            else:
+                token = auth_header
+
+        if not token:
+            return jsonify({'message': 'Token is missing!', 'status': 'error'}), 401
+
+        try:
+            payload = verify_jwt_token(token)
+            request.current_user = payload 
+        except Exception as e:
+            return jsonify({'message': f'Token is invalid: {str(e)}', 'status': 'error'}), 401
+
+        return f(*args, **kwargs)
+
+    return decorated
 
 
 def hash_password(password: str) -> str:
@@ -92,38 +122,78 @@ def register_user(email: str, password: str) -> dict:
     user_count = user_count_result[0] if user_count_result else 0
     
     # First user becomes admin, others are regular users
-    role = 'admin' if user_count == 0 else 'user'
+    if user_count_result and len(user_count_result) > 0 and user_count_result[0] > 0:
+        role = 'user'
+    else:
+        role = 'admin'
     
-    # Insert new user
-    insert_query = """
-        INSERT INTO users (email, password_hash, role)
-        OUTPUT INSERTED.id, INSERTED.email, INSERTED.role, INSERTED.created_at
-        VALUES (?, ?, ?)
-    """
+    db_type = os.getenv('DB_TYPE', 'mssql').lower()
     
-    try:
-        result = execute_query_one(insert_query, (email, password_hash, role))
-        user_id = result[0]
-        user_email = result[1]
-        user_role = result[2]
-        created_at = result[3]
+    if db_type == 'sqlite':
+        # SQLite Query - No OUTPUT clause
+        insert_query = """
+            INSERT INTO users (email, password_hash, role)
+            VALUES (?, ?, ?)
+        """
+        try:
+            execute_query_one(insert_query, (email, password_hash, role))
+            
+            # Fetch the newly created user
+            select_query = "SELECT id, email, role, created_at FROM users WHERE email = ?"
+            result = execute_query_one(select_query, (email,))
+            
+            user_id = result[0]
+            user_email = result[1]
+            user_role = result[2]
+            created_at = result[3]
+            
+            token = create_jwt_token(user_id, user_email, user_role)
+            
+            return {
+                'status': 'success',
+                'message': 'User registered successfully',
+                'user': {
+                    'id': user_id,
+                    'email': user_email,
+                    'role': user_role,
+                    'created_at': str(created_at)
+                },
+                'token': token
+            }
+        except Exception as e:
+            raise Exception(f"Registration failed: {str(e)}")
+            
+    else:
+        # SQL Server Query - Use OUTPUT clause
+        insert_query = """
+            INSERT INTO users (email, password_hash, role)
+            OUTPUT INSERTED.id, INSERTED.email, INSERTED.role, INSERTED.created_at
+            VALUES (?, ?, ?)
+        """
         
-        # Create JWT token with role
-        token = create_jwt_token(user_id, user_email, user_role)
-        
-        return {
-            'status': 'success',
-            'message': 'User registered successfully',
-            'user': {
-                'id': user_id,
-                'email': user_email,
-                'role': user_role,
-                'created_at': str(created_at)
-            },
-            'token': token
-        }
-    except Exception as e:
-        raise Exception(f"Registration failed: {str(e)}")
+        try:
+            result = execute_query_one(insert_query, (email, password_hash, role))
+            user_id = result[0]
+            user_email = result[1]
+            user_role = result[2]
+            created_at = result[3]
+            
+            # Create JWT token with role
+            token = create_jwt_token(user_id, user_email, user_role)
+            
+            return {
+                'status': 'success',
+                'message': 'User registered successfully',
+                'user': {
+                    'id': user_id,
+                    'email': user_email,
+                    'role': user_role,
+                    'created_at': str(created_at)
+                },
+                'token': token
+            }
+        except Exception as e:
+            raise Exception(f"Registration failed: {str(e)}")
 
 def login_user(email: str, password: str) -> dict:
     """
@@ -169,7 +239,7 @@ def login_user(email: str, password: str) -> dict:
             'id': user_id,
             'email': user_email,
             'role': user_role,
-            'created_at': created_at.isoformat() if created_at else None
+            'created_at': str(created_at) if created_at else None
         },
         'token': token
     }

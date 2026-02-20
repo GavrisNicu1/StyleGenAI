@@ -1,0 +1,43 @@
+\section{Rețele Neuronale și Procesarea Imaginilor (Computer Vision)}
+
+Unul dintre elementele centrale ale aplicației StyleGenAI este capacitatea de a „înțelege” și procesa imaginile încărcate de utilizator. În scenariile reale, utilizatorii fotografiază hainele în condiții necontrolate (pe pat, pe covor, agățate pe ușă), rezultând fundaluri zgomotoase (cluttered backgrounds) care pot confuza algoritmii de recomandare. De aceea, extragerea subiectului principal (Salient Object Detection - SOD) este o etapă critică.
+
+\subsection{Evoluția de la U-Net la U\textsuperscript{2}-Net}
+Pentru segmentarea imaginilor (decuparea obiectului de fundal), arhitectura de referință istorică este \textbf{U-Net}, propusă inițial de Ronneberger et al. \cite{ronneberger2015unet} pentru imagini biomedicale. Structura sa simetrică de encoder-decoder, cu conexiuni reziduale (skip connections), permite localizarea precisă a marginilor.
+
+Totuși, pentru texturi complexe precum materialele textile (dantelă, plase, franjuri), U-Net-ul clasic pierde detalii fine pe măsură ce imaginea trece prin layerele de downsampling.
+Soluția adoptată în acest proiect este arhitectura \textbf{U\textsuperscript{2}-Net} (U-Square-Net), propusă de Qin et al. \cite{qin2020u2net}, care este considerată state-of-the-art pentru SOD.
+
+\subsection{Arhitectura U\textsuperscript{2}-Net: Rețea în Rețea}
+Inovația majoră a U\textsuperscript{2}-Net constă în blocurile RSU (\textit{Residual U-blocks}). Spre deosebire de un bloc rezidual simplu (care doar adună inputul cu outputul), un bloc RSU conține în sine o structură U-Net completă miniaturală.
+
+Acest design „Rețea în Rețea” (Nested U-structure) permite extragerea trăsăturilor la scări multiple (multi-scale features) direct în cadrul fiecărui nivel, fără a reduce rezoluția hărții de trăsături prea agresiv.
+Funcția de pierdere (Loss Function) este definită global, fuzionând ieșirile de la toate nivelurile de adâncime:
+\begin{equation}
+L_{total} = \sum_{m=1}^{M} w_m L_{side}^{(m)} + w_{fuse} L_{fuse}
+\end{equation}
+Unde termenii $L$ reprezintă entropia încrucișată binară (Binary Cross Entropy). Această abordare garantează că decupajul final păstrează atât forma generală a hainei, cât și detaliile fine de la margini.
+
+\subsection{Implementarea Practică: Biblioteca Rembg}
+În cadrul StyleGenAI, implementarea practică a acestei arhitecturi s-a realizat prin intermediul bibliotecii open-source \texttt{rembg}, care rulează modelul U\textsuperscript{2}-Net pre-antrenat.
+Procesul fluxului de date pentru eliminarea fundalului este următorul:
+
+\begin{enumerate}
+    \item Imaginea brută ($I_{raw}$) este redimensionată la 320x320 pixeli.
+    \item Modelul generează o mască alfa ($\alpha$), unde pixelii de interes au valoarea 1 (alb) și fundalul 0 (negru).
+    \item Se aplică operația de compoziție: $I_{final} = I_{raw} \times \alpha$.
+\end{enumerate}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.7\textwidth]{procesare_imagine_flowchart}
+    \caption{Fluxul logic de procesare a unei imagini în StyleGenAI: De la captură la extragerea datelor.}
+    \label{fig:procesare_imagine}
+\end{figure}
+
+\subsection{Avantajele pentru Utilizatorul Final}
+Utilizarea U\textsuperscript{2}-Net transformă experiența utilizatorului din una frustrantă (necesitatea de a edita manual pozele) în una magică:
+\begin{itemize}
+    \item \textbf{Uniformitate}: Toate hainele din „Dulapul Virtual” au fundal transparent, permițând suprapunerea lor estetică (Layering) în modulul de generare ținute.
+    \item \textbf{Acuratețe}: Decuparea este precisă chiar și în condiții de iluminare slabă, eliminând elementele distractive din fundal care ar putea altera detecția culorii dominante.
+\end{itemize}

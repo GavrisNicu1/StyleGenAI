@@ -1,0 +1,83 @@
+\section{Implementarea Backend-ului (Python/Flask)}
+\label{sec:impl_backend}
+
+Backend-ul StyleGenAI este motorul logic al aplicației, construit în jurul framework-ului \textbf{Flask}. Am ales acest framework pentru ușurința integrării cu bibliotecile de inteligență artificială din ecosistemul Python (NumPy, SciPy).
+
+\subsection{Arhitectura Modulară}
+Am adoptat pattern-ul \textit{Application Factory}, esențial pentru scalabilitate și testare. Codul nu este scris într-un singur fișier monolitic, ci este organizat în pachete logice (\textit{Blueprints}).
+Structura de directoare reflectă această separare a responsabilităților:
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.6\textwidth]{backend_project_structure}
+    \caption{Captură VS Code: Structura directoarelor (Services, Routes, Models).}
+    \label{fig:backend_structure}
+\end{figure}
+
+\subsection{Algoritmul de Clasificare a Culorilor}
+O inovație cheie este algoritmul propriu de detectare a culorii dominante. În loc să folosim un API extern costisitor, am implementat o soluție bazată pe distanța Euclidiană în spațiul RGB.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{code_color_detection_screenshot}
+    \caption{Implementarea funcției \texttt{_closest_name}: Calculul distanței minime față de paleta CSS3.}
+    \label{fig:code_color}
+\end{figure}
+
+Această funcție, `_closest_name`, iterează prin dicționarul de culori standard web (CSS3) și găsește cea mai apropiată potrivire matematică pentru pixelul dominant extras din imagine - o metodă rapidă și eficientă.
+
+\subsection{Securitatea și Autentificarea}
+Pentru protejarea datelor utilizatorilor, am implementat un sistem bazat pe token-uri JWT (JSON Web Tokens).
+
+Pentru protejarea datelor, am implementat un modul dedicat (`auth.py`) care gestionează ciclul de viață al token-urilor JWT. Funcțiile principale asigură criptarea payload-ului la autentificare și verificarea semnăturii digitale la fiecare cerere ulterioară.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.85\textwidth]{code_auth_jwt_logic}
+    \caption{Implementarea JWT: Funcțiile \texttt{create\_jwt\_token} și \texttt{verify\_jwt\_token}.}
+    \label{fig:auth_code}
+\end{figure}
+
+\subsection{Structura Bazei de Date}
+Baza de date SQLite a fost proiectată conform celei de-a treia forme normale (3NF) pentru a elimina redundanța și a asigura integritatea referențială. Mai jos sunt detaliate tabelele principale și relațiile dintre acestea:
+
+\begin{itemize}
+    \item \textbf{users} - Tabelul central pentru gestionarea identității.
+    \begin{itemize}
+        \item \textbf{id}: INTEGER (PK) - Identificator unic auto-incrementat.
+        \item \textbf{public\_id}: UUID - Identificator public securizat folosit în token-urile JWT.
+        \item \textbf{email}: VARCHAR(120) - Adresa de email (unică).
+        \item \textbf{password\_hash}: VARCHAR(255) - Parola utilizatorului stocată criptat (bcrypt).
+        \item \textbf{created\_at}: DATETIME - Data înregistrării contului.
+    \end{itemize}
+    \textit{Relație:} 'users' are o relație one-to-many cu tabelele 'clothes' și 'outfits'.
+
+    \item \textbf{clothes} - Inventarul digital al garderobei.
+    \begin{itemize}
+        \item \textbf{id}: INTEGER (PK) - Identificator unic al articolului.
+        \item \textbf{user\_id}: INTEGER (FK) - Referință către proprietarul hainei.
+        \item \textbf{image\_data}: BLOB/TEXT - Imaginea codificată sau calea către fișier.
+        \item \textbf{category}: VARCHAR(50) - Categoria (Top/Bottom).
+        \item \textbf{color}: VARCHAR(50) - Culoarea dominantă detectată (ex: 'rosu', 'albastru').
+        \item \textbf{usage\_count}: INTEGER - Contor pentru frecvența utilizării.
+    \end{itemize}
+    
+    \item \textbf{outfits} - Istoricul combinațiilor generate.
+    \begin{itemize}
+        \item \textbf{id}: INTEGER (PK) - Identificator unic.
+        \item \textbf{user\_id}: INTEGER (FK) - Proprietarul ținutei.
+        \item \textbf{top\_id}: INTEGER (FK) - Referință către piesa superioară.
+        \item \textbf{bottom\_id}: INTEGER (FK) - Referință către piesa inferioară.
+        \item \textbf{match\_score}: FLOAT - Scorul de compatibilitate vizuală.
+        \item \textbf{created\_at}: DATETIME - Momentul generării.
+    \end{itemize}
+\end{itemize}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.9\textwidth]{baza_date_erd_detaliat}
+    \caption{Diagrama Entitate-Relație (ERD): Vizualizarea legăturilor PK-FK dintre tabele.}
+    \label{fig:db_erd}
+\end{figure}
+
+Această arhitectură relațională permite extragerea rapidă a istoricului personalizat și filtrarea hainelor pe baza metadatelor calculate automat.

@@ -2,7 +2,7 @@
 ai_metrics.py - AI Generation Metrics Logging
 Tracks outfit generation events for admin analytics
 """
-
+import os
 from typing import Optional
 from database import execute_query, execute_query_one
 
@@ -119,17 +119,32 @@ def get_generation_timeline(days: int = 7) -> list:
         list: Array of {date, total, successful, failed} objects
     """
     try:
-        query = """
-            SELECT 
-                CAST(created_at AS DATE) as date,
-                COUNT(*) as total,
-                SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) as successful,
-                SUM(CASE WHEN success = 0 THEN 1 ELSE 0 END) as failed
-            FROM ai_metrics
-            WHERE created_at >= DATEADD(day, -?, GETDATE())
-            GROUP BY CAST(created_at AS DATE)
-            ORDER BY date ASC
-        """
+        db_type = os.getenv('DB_TYPE', 'mssql').lower()
+        
+        if db_type == 'sqlite':
+            query = """
+                SELECT 
+                    date(created_at) as date,
+                    COUNT(*) as total,
+                    SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) as successful,
+                    SUM(CASE WHEN success = 0 THEN 1 ELSE 0 END) as failed
+                FROM ai_metrics
+                WHERE created_at >= date('now', '-' || ? || ' days')
+                GROUP BY date(created_at)
+                ORDER BY date ASC
+            """
+        else:
+            query = """
+                SELECT 
+                    CAST(created_at AS DATE) as date,
+                    COUNT(*) as total,
+                    SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) as successful,
+                    SUM(CASE WHEN success = 0 THEN 1 ELSE 0 END) as failed
+                FROM ai_metrics
+                WHERE created_at >= DATEADD(day, -?, GETDATE())
+                GROUP BY CAST(created_at AS DATE)
+                ORDER BY date ASC
+            """
         results = execute_query(query, (days,))
         return [{
             'date': row['date'].strftime('%Y-%m-%d'),
@@ -142,6 +157,8 @@ def get_generation_timeline(days: int = 7) -> list:
         return []
 
 
+import os
+
 def get_common_errors(limit: int = 5) -> list:
     """
     Get most common error messages.
@@ -153,15 +170,28 @@ def get_common_errors(limit: int = 5) -> list:
         list: Array of {error_message, count} objects
     """
     try:
-        query = """
-            SELECT TOP (?) 
-                error_message,
-                COUNT(*) as count
-            FROM ai_metrics
-            WHERE success = 0 AND error_message IS NOT NULL
-            GROUP BY error_message
-            ORDER BY count DESC
-        """
+        db_type = os.getenv('DB_TYPE', 'mssql').lower()
+        if db_type == 'sqlite':
+            query = """
+                SELECT 
+                    error_message,
+                    COUNT(*) as count
+                FROM ai_metrics
+                WHERE success = 0 AND error_message IS NOT NULL
+                GROUP BY error_message
+                ORDER BY count DESC
+                LIMIT ?
+            """
+        else:
+            query = """
+                SELECT TOP (?) 
+                    error_message,
+                    COUNT(*) as count
+                FROM ai_metrics
+                WHERE success = 0 AND error_message IS NOT NULL
+                GROUP BY error_message
+                ORDER BY count DESC
+            """
         results = execute_query(query, (limit,))
         return [dict(row) for row in results]
     except Exception as e:

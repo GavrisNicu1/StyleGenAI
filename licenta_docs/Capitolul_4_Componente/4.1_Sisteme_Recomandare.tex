@@ -1,0 +1,64 @@
+\section{Sisteme de Recomandare în Domeniul Modei}
+Sistemele de recomandare (RS) reprezintă coloana vertebrală a personalizării în aplicațiile moderne. În industria modei, acestea trebuie să depășească barierele algoritmilor clasici, adaptându-se la natura extrem de vizuală și subiectivă a preferințelor vestimentare. Această secțiune analizează paradigmele existente și justifică alegerea filtrării bazate pe conținut pentru proiectul StyleGenAI.
+
+\subsection{Categorii de Sisteme de Recomandare}
+Conform taxonomiei stabilite de Adomavicius și Tuzhilin \cite{adomavicius2005toward}, sistemele de recomandare se împart în trei categorii majore, fiecare având aplicabilitate distinctă în modă:
+
+\begin{itemize}
+    \item \textbf{Filtrarea Colaborativă (Collaborative Filtering)}: Se bazează pe "înțelepciunea mulțimii". Dacă utilizatorul A și utilizatorul B au gusturi similare în trecut, sistemul recomandă lui A ce a plăcut lui B.
+    \item \textbf{Filtrarea Bazată pe Conținut (Content-Based)}: Recomandă articole similare cu cele pe care utilizatorul le deține deja, analizând atributele produsului (culoare, textură, formă).
+    \item \textbf{Sisteme Hibride}: Combină cele două abordări pentru a elimina dezavantajele fiecăreia.
+\end{itemize}
+
+\subsection{De ce Filtrarea Colaborativă eșuează în Garderoba Personală}
+Deși filtrarea colaborativă domină platformele de streaming (Netflix, Spotify), ea este ineficientă pentru aplicația noastră din cauza problemei \textit{Cold Start}.
+Într-un dulap virtual, utilizatorul își încarcă propriile haine (poze unice). Aceste articole nu există în dulapurile altor utilizatori, deci nu există un istoric comun de interacțiuni ("Like-uri" de la alți oameni) pe baza căruia să se facă recomandări. 
+Astfel, soluția optimă pentru StyleGenAI este \textbf{Filtrarea Bazată pe Conținut Vizual}, care analizează haina însăși, nu cine a mai purtat-o.
+
+\subsection{Algoritmul de Similaritate și Extragerea Trăsăturilor}
+Pentru a recomanda o piesă vestimentară care se "potrivește" cu alta, sistemul trebuie să înțeleagă similaritatea vizuală. Aceasta nu se face pe pixelii bruți ai imaginii, ci pe \textit{vectori de trăsături} (embeddings) extrași printr-o Rețea Neuronală Convoluțională (CNN).
+
+Formal, măsura similarității între două articole $A$ și $B$, reprezentate prin vectori de trăsături $\vec{a}$ și $\vec{b}$, se calculează folosind \textbf{Similaritatea Cosinus}. Aceasta măsoară cosinusul unghiului dintre cei doi vectori într-un spațiu multidimensional:
+
+\begin{equation}
+\text{similarity}(\vec{a}, \vec{b}) = \cos(\theta) = \frac{\vec{a} \cdot \vec{b}}{\|\vec{a}\| \|\vec{b}\|}
+\end{equation}
+
+Unde:
+\begin{itemize}
+    \item Dacă scorul este 1, vectorii sunt identici (haine foarte similare).
+    \item Dacă scorul este 0, vectorii sunt ortogonali (haine complet diferite).
+    \item Dacă scorul este -1, vectorii sunt opuși.
+\end{itemize}
+
+\subsection{Implementare Practică în Python}
+În arhitectura backend a StyleGenAI, acest concept matematic este implementat folosind biblioteca \texttt{scikit-learn}. Codul de mai jos ilustrează funcția care compară amprentele vizuale a două articole vestimentare:
+
+\begin{verbatim}
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
+
+def calculate_style_match(embedding_top, embedding_bottom):
+    """
+    Calculează gradul de potrivire dintre un tricou și o pereche de pantaloni.
+    Args:
+        embedding_top (np.array): Vectorul trăsăturilor vizuale pentru partea de sus.
+        embedding_bottom (np.array): Vectorul trăsăturilor pentru partea de jos.
+    Returns:
+        float: Scor de compatibilitate (0.0 - 1.0).
+    """
+    # Redimensionare necesară pentru funcția library-ului
+    vec_a = embedding_top.reshape(1, -1)
+    vec_b = embedding_bottom.reshape(1, -1)
+    
+    # Calculăm similaritatea și normalizăm rezultatul
+    raw_score = cosine_similarity(vec_a, vec_b)[0][0]
+    return max(0.0, raw_score) # Asigurăm că nu returnăm valori negative
+\end{verbatim}
+
+Această funcție este esențială pentru "generatorul de ținute", permițând sistemului să filtreze rapid mii de combinații posibile și să le prezinte utilizatorului doar pe cele coezive vizual.
+
+\subsection{Abordări bazate pe Secvențe (RNN)}
+Dincolo de simpla similaritate între două piese, o ținută completă este o secvență: \textit{Top + Bottom + Shoes}. Cercetările recente, precum cele ale lui Han et al. \cite{han2017learning}, propun utilizarea rețelelor recurente (LSTM - Long Short-Term Memory) pentru a modela această relație.
+Deși StyleGenAI folosește primar abordarea bazată pe reguli de stil și similaritate vizuală datorită eficienței computaționale pe dispozitive mobile, arhitectura permite extinderea viitoare către un model secvențial complet.
+

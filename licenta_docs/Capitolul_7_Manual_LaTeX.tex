@@ -1,0 +1,100 @@
+\chapter{Manual de Instalare și Utilizare}
+\label{cap:manual}
+
+Acest capitol oferă instrucțiuni detaliate pentru instalarea, configurarea și utilizarea aplicației StyleGenAI. Este structurat în două secțiuni majore: resurse necesare și ghidul utilizatorului.
+
+\section{Manual de Instalare}
+
+\subsection{Cerințe de Sistem}
+Pentru a rula aplicația într-un mediu de dezvoltare, sunt necesare următoarele resurse:
+
+\textbf{Hardware:}
+\begin{itemize}
+    \item Procesor: Minim Intel i5 sau echivalent.
+    \item Memorie RAM: Minim 8GB (recomandat 16GB pentru rularea modelelor AI local).
+    \item Stocare: Minim 2GB spațiu liber.
+\end{itemize}
+
+\textbf{Software:}
+\begin{itemize}
+    \item Sistem de Operare: Windows 10/11, macOS sau Linux.
+    \item Python 3.8+ (pentru Backend).
+    \item Node.js 16+ și npm (pentru Frontend).
+    \item Expo Go instalat pe dispozitivul mobil (iOS/Android).
+\end{itemize}
+
+\subsection{Pași de Instalare Backend}
+\begin{enumerate}
+    \item Clonați repository-ul proiectului.
+    \item Navigați în folderul \texttt{backend}.
+    \item Creați un mediu virtual Python:
+    \begin{verbatim}
+    python -m venv venv
+    \end{verbatim}
+    \item Activați mediul virtual și instalați dependențele:
+    \begin{verbatim}
+    .\venv\Scripts\activate  (Windows)
+    pip install -r requirements.txt
+    \end{verbatim}
+    \item Inițializați baza de date (dacă este necesar):
+    \begin{verbatim}
+    python database_setup.py
+    \end{verbatim}
+    \item Porniți serverul:
+    \begin{verbatim}
+    python app.py
+    \end{verbatim}
+    Serverul va rula la adresa \texttt{http://localhost:5000}.
+\end{enumerate}
+
+\subsection{Pași de Instalare Frontend}
+\begin{enumerate}
+    \item Navigați în folderul rădăcină al aplicației React Native.
+    \item Instalați dependențele npm:
+    \begin{verbatim}
+    npm install
+    \end{verbatim}
+    \item Configurați adresa IP a serverului backend în \texttt{constants/config.ts} (înlocuiți \texttt{localhost} cu IP-ul mașinii dacă testați pe un telefon real):
+    \begin{verbatim}
+    export const API_BASE_URL = 'http://192.168.x.x:5000/api';
+    \end{verbatim}
+    \item Porniți serverul de dezvoltare Expo:
+    \begin{verbatim}
+    npx expo start
+    \end{verbatim}
+    \item Scanați codul QR generat folosind aplicația Expo Go.
+\end{enumerate}
+
+\section{Manual de Utilizare}
+
+\subsection{Autentificare}
+La deschiderea aplicației, utilizatorul este întâmpinat de ecranul de Login.
+\begin{itemize}
+    \item Dacă aveți deja cont, introduceți Email și Parolă și apăsați "Log In".
+    \item Dacă nu, apăsați pe "Sign Up" pentru a crea un cont nou.
+\end{itemize}
+
+%\begin{figure}[h]
+%    \centering
+%    \includegraphics[width=0.4\textwidth]{imagini/screenshot_login.png}
+%    \caption{Ecranul de Autentificare}
+%\end{figure}
+
+\subsection{Generarea unei Ținute}
+1. Accesați tab-ul \textbf{Explore} din meniul de jos.
+2. Selectați **Ocazia** dorită (ex: Casual, Business, Sport).
+3. (Opțional) Încărcați o fotografie cu un articol vestimentar pe care doriți să îl asortați.
+4. Apăsați butonul **"Generate Outfit"**.
+5. Așteptați câteva secunde procesarea AI. Rezultatul va fi afișat sub forma unei liste de articole recomandate.
+
+%\begin{figure}[h]
+%    \centering
+%    \includegraphics[width=0.4\textwidth]{imagini/screenshot_generate.png}
+%    \caption{Fluxul de generare a ținutei}
+%\end{figure}
+
+\subsection{Vizualizare Istoric}
+Toate ținutele generate sunt salvate automat. Le puteți accesa în tab-ul \textbf{History}. Aici puteți revedea detaliile fiecărei sugestii.
+
+\subsection{Profil Utilizator}
+În tab-ul \textbf{Profile}, puteți vizualiza informațiile contului sau vă puteți deloga apăsând butonul "Log Out".

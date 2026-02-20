@@ -1,0 +1,51 @@
+\section{Algoritmi pentru Analiza și Armonia Culorilor}
+
+Un aspect fundamental în estetica vestimentară, adesea subiectiv pentru oameni, este \textit{armonia cromatică}. Pentru a transforma acest concept abstract într-un "Styling Engine" determinist, StyleGenAI combină tehnici de procesare a semnalului (extragerea culorilor) cu reguli de design codificate algoritmic.
+
+\subsection{Spații de Culoare: De la RGB la HSV}
+Imaginile digitale sunt stocate nativ în format RGB (Red, Green, Blue). Deși eficient pentru afișarea pe ecrane, spațiul RGB nu este intuitiv pentru calcularea similarității sau armoniei percepute de ochiul uman. Distanța euclidiană între două puncte în spațiul RGB nu corespunde liniar cu percepția vizuală a diferenței.
+
+Din acest motiv, în procesarea imaginilor pentru modă, convertim datele în spațiul \textbf{HSV} (Hue, Saturation, Value):
+\begin{itemize}
+    \item \textbf{Hue (H)}: Nuanța cromatică pură, reprezentată unghiular pe un cerc de $360^{\circ}$. Aceasta este componenta critică pentru armonie (roșu, albastru, galben).
+    \item \textbf{Saturation (S)}: Intensitatea culorii. O saturație scăzută indică o culoare ternă/spălăcită.
+    \item \textbf{Value (V)}: Luminozitatea. Diferența dintre negru ($V=0$) și culoarea pură ($V=100$).
+\end{itemize}
+
+Această transformare ne permite să izolăm \textit{culoarea} (Hue) de \textit{lumină} (Value), esențial pentru a identifica o haină "albastră" indiferent dacă poza e făcută la soare sau în umbră.
+
+\subsection{Extragerea Culorii Dominante: Algoritmul K-Means}
+O imagine conține zeci de mii de pixeli. Pentru a clasifica o haină, trebuie să reducem această complexitate la o singură valoare reprezentativă ("Culoarea Dominantă").
+Proiectul utilizează algoritmul de clusterizare nersupervizată \textbf{K-Means}. Procesul este următorul:
+\begin{enumerate}
+    \item Se elimină mai întâi pixelii transparenți (rezultați din procesul de segmentare Rembg).
+    \item Se inițializează $k=3$ centroizi aleatori în spațiul RGB.
+    \item Se grupează toți pixelii în jurul celui mai apropiat centroid.
+    \item Se recalculează poziția centroizilor ca media aritmetică a grupului.
+    \item Algoritmul converge când centroizii nu se mai mișcă.
+\end{enumerate}
+Clusterul cu cel mai mare număr de pixeli devine culoarea dominantă a hainei, stocată în baza de date.
+
+\subsection{Algoritmi de Armonie Cromatică}
+Odată identificată nuanța $H$ a fiecărei haine, motorul de recomandare aplică reguli geometrice pe cercul cromatic Itten pentru a genera ținute. Aceste reguli sunt implementate ca funcții matematice:
+
+\begin{itemize}
+    \item \textbf{Armonie Complementară}: Selectează culori opuse pe cerc.
+    \begin{equation}
+    H_{comp} = (H_{base} + 180^{\circ}) \mod 360^{\circ}
+    \end{equation}
+    Exemplu: Albastru și Portocaliu. Creează un contrast puternic, dinamic.
+    
+    \item \textbf{Armonie Analogă}: Selectează culori adiacente.
+    \begin{equation}
+    H_{alalog} \in [(H_{base} - 30^{\circ}), (H_{base} + 30^{\circ})] \mod 360^{\circ}
+    \end{equation}
+    Exemplu: Albastru și Turcoaz. Creează o ținută calmă, unitară.
+    
+    \item \textbf{Armonie Triadică}: Trei culori echidistante.
+    \begin{equation}
+    H_{triad} = (H_{base} + 120^{\circ} \cdot n) \mod 360^{\circ}, n \in \{1, 2\}
+    \end{equation}
+\end{itemize}
+
+Prin combinarea acestor reguli stricte cu filtrarea neutrelor (alb, negru, gri, care se potrivesc cu orice), StyleGenAI poate genera automat ținute care sunt garantate a fi plăcute estetic, eliminând riscul de "clashing colors".

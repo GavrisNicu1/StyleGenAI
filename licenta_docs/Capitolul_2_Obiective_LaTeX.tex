@@ -1,0 +1,59 @@
+\chapter{Obiectivele Proiectului}
+
+\section{Definirea problemei}
+În contextul actual, gestionarea garderobei personale devine o provocare logistică și estetică. Utilizatorii acumulează un număr mare de articole vestimentare, dar folosesc activ doar un procent redus din acestea. Problema centrală abordată de acest proiect este \textbf{optimizarea utilizării garderobei personale} prin intermediul tehnologiei, oferind asistență în crearea de combinații stilistice coerente.
+
+Proiectul își propune să răspundă la întrebarea: \textit{„Cum putem utiliza inteligența artificială și procesarea de imagine pentru a oferi un stilist personal digital, accesibil direct de pe telefonul mobil?”}
+
+\section{Obiectivele generale}
+Scopul principal este dezvoltarea unei aplicații mobile integrate (Frontend + Backend) care să funcționeze ca un asistent vestimentar inteligent. Aplicația trebuie să fie capabilă să:
+\begin{enumerate}
+    \item \textbf{Digitalizeze garderoba}: Utilizatorul își poate încărca hainele prin fotografii.
+    \item \textbf{Proceseze imaginile}: Eliminarea automată a fundalului pentru o vizualizare clară.
+    \item \textbf{Genereze sugestii}: Crearea de ținute (Outfit-uri) bazate pe reguli de stil și preferințe.
+    \item \textbf{Învețe din interacțiuni}: Adaptarea sugestiilor pe baza feedback-ului (Like/Dislike).
+\end{enumerate}
+
+\section{Obiectivele specifice și funcționalități}
+
+\subsection{Modulul de Administrare a Garderobei}
+\begin{itemize}
+    \item \textbf{Încărcare Foto}: Utilizarea camerei sau a galeriei pentru a adăuga articole.
+    \item \textbf{Procesare Automată}: Integrarea bibliotecii \texttt{rembg} pentru a decupa haina din imagine.
+    \item \textbf{Categorisire}: Clasificarea automată sau manuală a hainelor (Top, Bottom, Footwear).
+\end{itemize}
+
+\subsection{Asistentul de Stil (Styling Engine)}
+\begin{itemize}
+    \item \textbf{Algoritm de Compatibilitate}: Implementarea unui set de reguli cromatice (ex: culori complementare, monocromatice).
+    \item \textbf{Style Classifier}: Utilizarea unui model AI simplificat pentru a eticheta stilul (Casual, Sport, Formal).
+    \item \textbf{Generatorul de Ținute}: Algoritm care selectează aleatoriu sau euristic câte un articol din fiecare categorie esențială pentru a forma o ținută validă.
+\end{itemize}
+
+\subsection{Interfața Utilizator (UX/UI)}
+\begin{itemize}
+    \item \textbf{Design Intuitiv}: Navigație fluidă prin tab-uri (Explore, Wardrobe, Profile).
+    \item \textbf{Interactivitate}: Posibilitatea de a salva ținutele favorite și de a șterge articolele nedorite.
+\end{itemize}
+
+\subsection{Componenta Comercială (Sponsorizări)}
+\begin{itemize}
+    \item \textbf{Sugestii Contextuale}: Posibilitatea de a insera în fluxul de sugestii articole de la parteneri, marcate ca „Sponsored” sau „Completează ținuta”.
+\end{itemize}
+
+\section{Diagrama conceptuală a soluției}
+(Aici este locul rezervat pentru inserarea figurii care arată fluxul de date: Utilizator $\rightarrow$ Poză $\rightarrow$ Server (Procesare) $\rightarrow$ Bază de Date $\rightarrow$ Algoritm Recomandare $\rightarrow$ Interfață)
+
+%\begin{figure}[h]
+%    \centering
+%    \includegraphics[width=0.8\textwidth]{diagrama_conceptuala}
+%    \caption{Fluxul conceptual al aplicației StyleGenAI}
+%    \label{fig:diagrama_conceptuala}
+%\end{figure}
+
+\section{Constrângeri și Provocări}
+\begin{itemize}
+    \item \textbf{Calitatea imaginilor}: Sistemul trebuie să funcționeze rezonabil chiar și cu poze realizate în condiții de iluminare slabă.
+    \item \textbf{Timpul de răspuns}: Procesarea imaginii și generarea sugestiei trebuie să se întâmple în câteva secunde pentru a nu plictisi utilizatorul.
+    \item \textbf{Diversitatea vestimentară}: Algoritmul trebuie să fie suficient de flexibil pentru a gestiona stiluri variate, inițial concentrându-se pe moda masculină.
+\end{itemize}

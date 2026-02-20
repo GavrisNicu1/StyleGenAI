@@ -1,0 +1,42 @@
+\section{Modelarea Datelor și Mecanisme de Securitate}
+
+Integritatea și confidențialitatea datelor reprezintă piloni centrali în proiectarea oricărui sistem informatic care gestionează informații personale. Această secțiune detaliază structura logică a datelor și protocoalele criptografice implementate.
+
+\subsection{Normalizarea Bazei de Date Relaționale}
+Stocarea datelor persistente se realizează într-un sistem de gestiune a bazelor de date relaționale (RDBMS). Schema bazei de date a fost  proiectată respectând \textbf{Forma Normală 3 (3NF)} pentru a elimina redundanța și anomaliile de actualizare:
+\begin{itemize}
+    \item \textbf{1NF (Atomicitate)}: Toate atributele conțin valori atomice (ex: coordonatele culorii sunt stocate separat sau serializate standardizat).
+    \item \textbf{2NF (Dependența Funcțională Totală)}: Toate atributele non-cheie depind complet de cheia primară.
+    \item \textbf{3NF (Independența Tranzitivă)}: Nu există dependențe tranzitive între atributele non-cheie. De exemplu, detaliile despre "Tipul Hainei" ar putea fi extrase într-o tabelă nomenclator separată dacă ar conține atribute proprii, dar în acest caz sunt atribute directe ale hainei.
+\end{itemize}
+
+Entitățile principale (\texttt{Users}, \texttt{Clothes}, \texttt{Outfits}) sunt legate prin relații de tip \textit{Foreign Key}, asigurând integritatea referențială (ex: o haină nu poate exista fără un utilizator proprietar).
+
+\subsection{Teoria Criptografică a Parolelor}
+Securitatea autentificării se bazează pe funcții de dispersie (hash functions). Parolele utilizatorilor nu sunt stocate niciodată în clar.
+Sistemul utilizează algoritmul \textbf{Bcrypt}, care implementează conceptul de \textit{Key Stretching} și \textit{Salting}.
+Matematic, hash-ul stocat este rezultatul funcției:
+\begin{equation}
+H = E_{bcrypt}(P, S, C_{cost})
+\end{equation}
+Unde:
+\begin{itemize}
+    \item $P$ este parola în clar.
+    \item $S$ este sarea (salt) generată aleator pentru fiecare utilizator, protejând împotriva atacurilor cu tabele Rainbow precalculate.
+    \item $C_{cost}$ este factorul de lucru (numărul de iterații), făcând funcția lentă computațional în mod intenționat pentru a descuraja atacurile prin forță brută (Brute Force).
+\end{itemize}
+
+\subsection{Securitatea Sesiunii prin JWT (JSON Web Tokens)}
+Pentru autorizarea cererilor API, StyleGenAI implementează standardul RFC 7519 (JWT). Un token este compus din trei părți:
+\begin{enumerate}
+    \item \textbf{Header}: Specifică algoritmul de semnare (HS256 - HMAC cu SHA-256).
+    \item \textbf{Payload}: Conține "Claims" (revendicări) despre utilizator (ID, rol, timp de expirare).
+    \item \textbf{Signature}: Asigură integritatea datelor.
+    \begin{equation}
+    Sig = HMAC_{SHA256}(Base64(Header) + "." + Base64(Payload), SecretKey)
+    \end{equation}
+\end{enumerate}
+Avantajul major al acestei abordări este că serverul poate verifica validitatea token-ului folosind doar cheia secretă, fără a interoga baza de date la fiecare request, reducând încărcarea sistemului.
+
+\subsection{Protecția Canalului de Comunicație}
+Confidențialitatea datelor în tranzit este garantată de protocolul \textbf{TLS (Transport Layer Security)}. Acesta utilizează criptarea asimetrică (schimb de chei RSA/Elliptic Curve) pentru a stabili o cheie de sesiune simetrică, utilizată ulterior pentru criptarea rapidă a fluxului de date. Aceasta previne interceptarea pachetelor (Sniffing) și atacurile Man-in-the-Middle (MitM).

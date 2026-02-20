@@ -25,8 +25,9 @@ from styling_engine.tryon_warp import compose_on_mannequin, remove_bg as remove_
 from web_fetcher import get_web_outfit
 
 # Authentication & Outfits
-from auth import register_user, login_user, get_current_user, verify_jwt_token, require_admin, reset_user_password
+from auth import register_user, login_user, get_current_user, verify_jwt_token, require_admin
 from outfits import save_outfit, get_user_outfits, toggle_outfit_like, delete_outfit, get_outfit_by_id
+from password_reset import create_password_reset_request, validate_reset_token, reset_password_with_token
 from database import execute_query_one
 from admin import (
     get_dashboard_stats, 
@@ -412,30 +413,76 @@ def auth_login():
         return jsonify({"status": "error", "message": str(e)}), 401
 
 
-@app.post("/auth/reset-password")
-def auth_reset_password():
-    """Reset user password"""
+@app.post("/auth/request-password-reset")
+def auth_request_password_reset():
+    """Request a password reset - sends email with reset link"""
     try:
         data = request.get_json(force=True, silent=True) or {}
         email = data.get("email", "").strip()
         
-        print(f"[RESET_PASSWORD] Request for email: {email}")
+        print(f"[PASSWORD_RESET] Request for email: {email}")
         
         if not email:
-            print("[RESET_PASSWORD] Missing email")
-            return jsonify({"status": "error", "message": "Email is required"}), 400
+            print("[PASSWORD_RESET] Missing email")
+            return jsonify({"status": "error", "message": "Email-ul este obligatoriu"}), 400
         
-        print("[RESET_PASSWORD] Calling reset_user_password()...")
-        result = reset_user_password(email)
-        print(f"[RESET_PASSWORD] Success! New password generated for: {email}")
-        return jsonify({
-            "status": "success",
-            "message": "Password reset successfully",
-            "new_password": result['new_password']
-        }), 200
+        result = create_password_reset_request(email)
+        return jsonify(result), 200 if result['status'] == 'success' else 400
+        
     except Exception as e:
-        print(f"[RESET_PASSWORD] Error: {str(e)}")
-        return jsonify({"status": "error", "message": str(e)}), 400
+        print(f"[PASSWORD_RESET] Error: {str(e)}")
+        return jsonify({"status": "error", "message": "A apărut o eroare. Te rugăm să încerci din nou."}), 500
+
+
+@app.get("/auth/validate-reset-token")
+def auth_validate_reset_token():
+    """Validate a password reset token"""
+    try:
+        token = request.args.get("token", "").strip()
+        
+        if not token:
+            return jsonify({"valid": False, "error": "Token lipsă"}), 400
+        
+        result = validate_reset_token(token)
+        return jsonify(result), 200 if result.get('valid') else 400
+        
+    except Exception as e:
+        print(f"[PASSWORD_RESET] Validation error: {str(e)}")
+        return jsonify({"valid": False, "error": "Eroare la validare"}), 500
+
+
+@app.post("/auth/reset-password")
+def auth_reset_password():
+    """Reset password using token - updates password in database"""
+    try:
+        data = request.get_json(force=True, silent=True) or {}
+        token = data.get("token", "").strip()
+        new_password = data.get("new_password", "")
+        
+        print(f"[PASSWORD_RESET] Attempting password reset with token")
+        
+        if not token:
+            return jsonify({"status": "error", "message": "Token lipsă"}), 400
+        
+        if not new_password:
+            return jsonify({"status": "error", "message": "Parola nouă este obligatorie"}), 400
+        
+        if len(new_password) < 8:
+            return jsonify({"status": "error", "message": "Parola trebuie să aibă cel puțin 8 caractere"}), 400
+        
+        result = reset_password_with_token(token, new_password)
+        return jsonify(result), 200 if result['status'] == 'success' else 400
+        
+    except Exception as e:
+        print(f"[PASSWORD_RESET] Error: {str(e)}")
+        return jsonify({"status": "error", "message": "A apărut o eroare. Te rugăm să încerci din nou."}), 500
+
+
+@app.get("/auth/reset-password-page")
+def auth_reset_password_page():
+    """Serve the password reset HTML page"""
+    token = request.args.get("token", "")
+    return send_from_directory(os.path.join(BASE_DIR, "templates"), "reset-password.html")
 
 
 @app.get("/auth/me")

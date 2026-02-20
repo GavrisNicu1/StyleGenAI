@@ -1,0 +1,34 @@
+\chapter{Concluzii}
+\label{cap:concluzii}
+
+\section{Rezumatul Contribuțiilor}
+Prezenta lucrare a tratat proiectarea și implementarea aplicației StyleGenAI, un asistent vestimentar inteligent care utilizează algoritmi de învățare automată pentru a oferi sugestii stilistice personalizate.
+
+Principalele contribuții aduse prin acest proiect sunt:
+\begin{itemize}
+    \item \textbf{Cercetare Bibliografică}: Analiza detaliată a stadiului actual al sistemelor de recomandare în domeniul modei și identificarea limitărilor soluțiilor existente.
+    \item \textbf{Arhitectură Hibridă}: Proiectarea unei soluții scalabile care combină un backend robust (Flask, Python) cu capabilități AI și un frontend modern și reactiv (React Native).
+    \item \textbf{Motor de Recomandare}: Implementarea unui algoritm propriu care îmbină reguli de teoria culorilor cu clasificarea stilistică bazată pe rețele neurale (ResNet50).
+    \item \textbf{Integrare Completă}: Realizarea unui produs funcțional end-to-end, de la baza de date până la interfața mobilă, validat prin teste și scenarii de utilizare.
+\end{itemize}
+
+\section{Analiză Critică a Rezultatelor}
+În urma testării și validării, s-a constatat că aplicația îndeplinește obiectivele fundamentale stabilite. Sistemul este capabil să recunoască culori dominante din imagini cu o precizie ridicată și să genereze combinații vestimentare valide din punct de vedere estetic.
+
+Limitări identificate:
+\begin{itemize}
+    \item \textbf{Dependența de Dataset}: Calitatea sugestiilor este direct proporțională cu diversitatea setului de date antrenat. În anumite cazuri de stiluri de nișă, clasificatorul poate avea o acuratețe scăzută.
+    \item \textbf{Latența}: Procesarea imaginilor de rezoluție mare pe un server fără accelerare GPU dedicată poate dura până la 5-10 secunde, ceea ce afectează experiența utilizatorului.
+\end{itemize}
+
+\section{Direcții Viitoare de Dezvoltare}
+Proiectul lasă loc pentru numeroase îmbunătățiri și extinderi ulterioare:
+
+\begin{enumerate}
+    \item \textbf{Dulap Virtual}: Implementarea funcționalității de a digitaliza garderoba proprie a utilizatorului, permițând generarea de ținute exclusiv din hainele deținute.
+    \item \textbf{Integrare E-commerce}: Adăugarea de link-uri directe către magazine online pentru achiziționarea articolelor sugerate, eventual prin parteneriate de afiliere.
+    \item \textbf{Feedback Loop Activ}: Implementarea unui mecanism de re-antrenare a modelului ("Fine-tuning") bazat pe like-urile/dislike-urile date de utilizatori sugestiilor primite.
+    \item \textbf{Try-On Virtual}: Utilizarea tehnologiilor de Realitate Augmentată (AR) pentru a proba virtual hainele direct pe corpul utilizatorului.
+\end{enumerate}
+
+În concluzie, StyleGenAI demonstrează potențialul inteligenței artificiale de a democratiza accesul la consultanță stilistică, oferind o unealtă utilă și accesibilă pentru utilizatorul modern.
