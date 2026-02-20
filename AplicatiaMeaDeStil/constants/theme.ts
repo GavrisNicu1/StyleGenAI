@@ -5,25 +5,40 @@
 
 import { Platform } from 'react-native';
 
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+const tintColorLight = '#000080'; // Classic vibrant Navy Blue
+const tintColorDark = '#F7F5F0'; // Cream for dark mode active
+
+// Gucci Style Palette
+const gucciGreen = '#115740'; // Classic darker green
+const gucciRed = '#B01824';   // Deep rich red
+const gucciCream = '#866c2a'; // Elegant off-white/beige background
+const gucciGold = '#C5A059';  // Muted luxury gold
+const gucciNavy = '#000080';  // Classic vibrant Navy Blue
 
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
+    text: '#000080',       // Navy Blue text
+    background: gucciCream, // Signature Cream background
     tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
+    icon: '#4B5E85',       // Lighter Blue-Grey for inactive tabs (instead of plain grey)
+    tabIconDefault: '#4B5E85',
     tabIconSelected: tintColorLight,
+    primary: gucciGreen,
+    secondary: gucciRed,
+    tertiary: gucciGold, // Changed to Gold for borders/accents
+    card: '#FFFFFF',       // Clean white for cards to pop against cream
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
+    text: '#F7F5F0',       // Cream text
+    background: '#f5f2af', // Very dark green/black background for dark mode
     tint: tintColorDark,
     icon: '#9BA1A6',
     tabIconDefault: '#9BA1A6',
     tabIconSelected: tintColorDark,
+    primary: gucciGreen,
+    secondary: gucciRed,
+    tertiary: gucciNavy, // Changed to Navy Blue per user request
+    card: '#99b619',       // Dark green card background
   },
 };
 

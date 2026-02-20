@@ -14,17 +14,14 @@ export function ProfileHeader() {
           onPress={() => router.push('/(tabs)/profile')} 
           style={styles.profileButton}
         >
-          <Ionicons name="person-circle" size={32} color="#007AFF" />
-          <Text style={styles.profileButtonText} numberOfLines={1}>
-            {user.email}
-          </Text>
+          <Ionicons name="person-circle" size={24} color="#115740" />
         </TouchableOpacity>
       ) : (
         <TouchableOpacity 
           onPress={() => router.push('/auth/login')} 
           style={styles.loginButton}
         >
-          <Ionicons name="person-outline" size={20} color="#007AFF" />
+          <Ionicons name="person-outline" size={20} color="#115740" />
           <Text style={styles.loginText}>Login</Text>
         </TouchableOpacity>
       )}
@@ -48,7 +45,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#007AFF',
+    borderColor: '#C5A059', // Gold
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -57,28 +54,29 @@ const styles = StyleSheet.create({
     maxWidth: 250,
   },
   profileButtonText: {
-    color: '#007AFF',
+    color: '#115740', // Green
     fontWeight: '600',
     fontSize: 13,
   },
   loginButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    justifyContent: 'center',
+    padding: 6,
     backgroundColor: '#fff',
-    borderRadius: 20,
+    borderRadius: 20, // Smaller circle
     borderWidth: 1,
-    borderColor: '#007AFF',
+    borderColor: '#C5A059', // Gucci Gold
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+    minWidth: 36,
+    minHeight: 36,
   },
   loginText: {
-    color: '#007AFF',
+    color: '#115740', // Green
     fontWeight: '600',
   },
 });

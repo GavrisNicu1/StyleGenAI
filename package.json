@@ -6,5 +6,8 @@
   "scripts": {
     "start": "echo Please run commands inside AplicatiaMeaDeStil folder",
     "postinstall": "echo No root install. cd AplicatiaMeaDeStil && npm install"
+  },
+  "dependencies": {
+    "expo-linear-gradient": "^15.0.8"
   }
 }

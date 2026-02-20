@@ -270,13 +270,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#fff', 
+    borderWidth: 1, 
+    borderColor: '#D4AF37', // Auriu
   },
   filterButtonActive: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#115740', // Gucci Green
+    borderColor: '#115740',
   },
   filterText: {
-    color: '#666',
+    color: '#115740', // Gucci Green text for inactive
     fontWeight: '600',
   },
   filterTextActive: {

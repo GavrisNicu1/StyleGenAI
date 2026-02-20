@@ -142,7 +142,7 @@ export default function OutfitDetailScreen() {
           <View style={styles.placeholder} />
         </View>
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#007AFF" />
+          <ActivityIndicator size="large" color="#115740" />
         </View>
       </View>
     );
@@ -499,13 +499,13 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   badge: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#115740',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
   },
   badgeText: {
-    color: '#fff',
+    color: '#F7F5F0',
     fontSize: 12,
     fontWeight: '500',
   },
@@ -514,11 +514,13 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     marginBottom: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#C5A059',
   },
   pieceTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: '#115740',
     marginBottom: 8,
   },
   pieceText: {
@@ -552,11 +554,11 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#007AFF',
+    borderColor: '#115740',
   },
   colorText: {
     fontSize: 12,
-    color: '#007AFF',
+    color: '#115740',
     fontWeight: '500',
   },
 });

@@ -20,6 +20,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
+import { ThemedView } from '@/components/themed-view';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedButton } from '@/components/ui/ThemedButton';
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import SilhouetteSuplu from './assets/silhouette_suplu.png';
 import SilhouetteMediu from './assets/silhouette_mediu.png';
 import SilhouetteRobust from './assets/silhouette_robust.png';
@@ -726,8 +731,9 @@ const App = () => {
   // Eliminat: handleComposeOnMannequin (concept manechin).
 
   return (
-    <ScrollView style={styles.page} contentContainerStyle={styles.scrollContent}>
-      <View style={styles.container}>
+    <ThemedView style={{ flex: 1 }}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.container}>
         {/* Auth Header */}
         <View style={styles.authHeader}>
           {isAuthenticated && user ? (
@@ -735,15 +741,14 @@ const App = () => {
               onPress={() => router.push('/(tabs)/profile')} 
               style={styles.profileButton}
             >
-              <Ionicons name="person-circle" size={32} color="#007AFF" />
-              <Text style={styles.profileButtonText}>{user.email}</Text>
+              <Ionicons name="person-circle" size={24} color="#115740" />
             </TouchableOpacity>
           ) : (
             <TouchableOpacity 
               onPress={() => router.push('/auth/login')} 
               style={styles.loginButton}
             >
-              <Ionicons name="person-outline" size={20} color="#007AFF" />
+              <Ionicons name="person-outline" size={20} color="#115740" />
               <Text style={styles.loginText}>Login</Text>
             </TouchableOpacity>
           )}
@@ -901,23 +906,28 @@ const App = () => {
                 </Text>
               )}
             </View>
-            <PrimaryButton
+            <ThemedButton
               title="Generează ținuta"
               onPress={handleGenerateOutfit}
               disabled={isLoading || !canGenerateOutfit}
+              loading={isLoading}
             />
           </>
         )}
 
-        {isLoading && <ActivityIndicator size="large" color="#007AFF" style={styles.loading} />}
+        {isLoading && <ActivityIndicator size="large" color={Colors.light.primary} style={styles.loading} />}
         {outfitSuggestion && !isLoading && (
-          <View style={styles.resultContainer}>
+          <View style={[styles.resultContainer, { backgroundColor: Colors.light.card }]}>
             {'error' in outfitSuggestion ? (
               <>
                 <Text style={styles.resultTitle}>{outfitSuggestion.error}</Text>
-                <TouchableOpacity style={styles.resetButton} onPress={resetApp}>
-                  <Text style={styles.resetButtonText}>Încearcă din nou</Text>
-                </TouchableOpacity>
+                <ThemedButton 
+                  title="Încearcă din nou" 
+                  onPress={resetApp} 
+                  type="secondary"
+                  style={styles.resetButton}
+                  textStyle={styles.resetButtonText}
+                />
               </>
             ) : (
               <>
@@ -935,31 +945,29 @@ const App = () => {
                 
                 {/* Save to Profile Button */}
                 {isAuthenticated && (
-                  <TouchableOpacity 
-                    style={[styles.saveButton, outfitSaved && styles.saveButtonDisabled]} 
+                  <ThemedButton 
+                    title={outfitSaved ? 'Salvat ✓' : 'Salvează în Profil'}
                     onPress={handleSaveToHistory}
+                    type="tertiary"
                     disabled={outfitSaved}
-                  >
-                    <Ionicons 
-                      name={outfitSaved ? "checkmark-circle" : "heart-outline"} 
-                      size={20} 
-                      color="#fff" 
-                    />
-                    <Text style={styles.saveButtonText}>
-                      {outfitSaved ? 'Salvat ✓' : 'Salvează în Profil'}
-                    </Text>
-                  </TouchableOpacity>
+                    icon={outfitSaved ? "checkmark-circle" : "heart-outline"}
+                    style={{ marginTop: 24 }}
+                  />
                 )}
 
-                <TouchableOpacity style={styles.resetButton} onPress={resetApp}>
-                  <Text style={styles.resetButtonText}>Creează o altă ținută</Text>
-                </TouchableOpacity>
+                <ThemedButton 
+                  title="Creează o altă ținută"
+                  onPress={resetApp}
+                  type="secondary"
+                  style={{ marginTop: 12, marginBottom: 24 }}
+                />
               </>
             )}
           </View>
         )}
       </View>
-    </ScrollView>
+      </ScrollView>
+    </ThemedView>
   );
 };
 
@@ -1195,7 +1203,7 @@ const CompareOutfits: React.FC<CompareOutfitsProps> = ({ mySuggestion, webSugges
 const styles = StyleSheet.create({
   page: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#F7F5F0', // Gucci Cream
   },
   scrollContent: {
     alignItems: 'center',
@@ -1212,11 +1220,13 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontWeight: 'bold',
     marginBottom: 20,
+    color: '#115740', // Gucci Green Title
   },
   instructions: {
     fontSize: 18,
     marginBottom: 15,
     alignSelf: 'flex-start',
+    color: '#1E2A3B', // Gucci Navy
   },
   filterContainer: {
     flexDirection: 'row',
@@ -1232,23 +1242,23 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: '#D4AF37', // Auriu puțin mai intens decât fundalul crem
     alignItems: 'center',
     minWidth: 100,
   },
   filterButtonSelected: {
-    backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
+    backgroundColor: '#115740', // Gucci Green Selected
+    borderColor: '#115740',
   },
   filterButtonDisabled: {
     backgroundColor: '#e0e0e0',
     borderColor: '#d0d0d0',
   },
   filterText: {
-    color: '#007AFF',
+    color: '#115740', // Gucci Green Text
   },
   filterTextSelected: {
-    color: '#fff',
+    color: '#F7F5F0', // Cream Text
     fontWeight: 'bold',
   },
   filterTextDisabled: {
@@ -1274,12 +1284,12 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   addButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#115740', // Gucci Green
     padding: 15,
     borderRadius: 8,
   },
   addButtonText: {
-    color: 'white',
+    color: '#F7F5F0',
     fontWeight: 'bold',
     fontSize: 16,
   },
@@ -1589,7 +1599,7 @@ const styles = StyleSheet.create({
   },
   composeButton: {
     marginTop: 10,
-    backgroundColor: '#007AFF',
+    backgroundColor: '#115740', // Gucci Green
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 8,
@@ -1619,24 +1629,22 @@ const styles = StyleSheet.create({
   profileButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    justifyContent: 'center',
+    padding: 6,
     backgroundColor: '#fff',
-    borderRadius: 20,
+    borderRadius: 20, // Smaller circle
     borderWidth: 1,
-    borderColor: '#007AFF',
+    borderColor: '#C5A059', // Gucci Gold
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+    minWidth: 36,
+    minHeight: 36,
   },
   profileButtonText: {
-    color: '#007AFF',
-    fontWeight: '600',
-    fontSize: 13,
-    maxWidth: 150,
+    display: 'none', // Hide text style just in case
   },
   loginButton: {
     flexDirection: 'row',
@@ -1647,10 +1655,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#007AFF',
+    borderColor: '#C5A059', // Gucci Gold
   },
   loginText: {
-    color: '#007AFF',
+    color: '#115740', // Gucci Green
     fontWeight: '600',
   },
 });

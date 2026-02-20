@@ -481,7 +481,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#007AFF',
+    backgroundColor: '#115740', // Gucci Green
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -580,7 +580,7 @@ const styles = StyleSheet.create({
   },
   popularityBar: {
     height: '100%',
-    backgroundColor: '#007AFF',
+    backgroundColor: '#115740', // Gucci Green
     borderRadius: 10,
   },
   popularityPercentage: {

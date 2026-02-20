@@ -1,28 +1,42 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { StyleSheet, KeyboardAvoidingView, Platform, View, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
+import { ThemedView } from '@/components/themed-view';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedButton } from '@/components/ui/ThemedButton';
+import { ThemedInput } from '@/components/ui/ThemedInput';
+import { Colors } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function SignupScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  
   const { register } = useAuth();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
 
   const handleSignup = async () => {
+    setError('');
+    
     if (!email.trim() || !password.trim() || !confirmPassword.trim()) {
-      Alert.alert('Error', 'Please fill in all fields');
+      setError('Toate câmpurile sunt obligatorii.');
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+      setError('Parolele nu coincid.');
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
+      setError('Parola trebuie să aibă cel puțin 6 caractere.');
       return;
     }
 
@@ -30,140 +44,125 @@ export default function SignupScreen() {
     try {
       await register(email, password);
       router.replace('/(tabs)');
-    } catch (error: any) {
-      Alert.alert('Registration Failed', error.message || 'Could not create account');
+    } catch (err: any) {
+      setError(err.message || 'Înregistrare eșuată. Încearcă din nou.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <View style={styles.content}>
-        <Text style={styles.title}>Create Account</Text>
-        <Text style={styles.subtitle}>Sign up to get started</Text>
+    <ThemedView style={styles.container}>
+      <KeyboardAvoidingView
+        style={styles.content}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <View style={styles.headerContainer}>
+          <ThemedText type="goldTitle" style={styles.title}>Creează Cont</ThemedText>
+          <ThemedText style={styles.subtitle}>Începe călătoria ta de stil</ThemedText>
+        </View>
 
-        <View style={styles.form}>
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
+        <View style={styles.formContainer}>
+          {error ? <ThemedText style={styles.errorText}>{error}</ThemedText> : null}
+
+          <ThemedInput
+            label="Email"
+            placeholder="Introduceți adresa de email"
             value={email}
             onChangeText={setEmail}
-            keyboardType="email-address"
             autoCapitalize="none"
-            autoComplete="email"
-            editable={!loading}
+            keyboardType="email-address"
           />
 
-          <TextInput
-            style={styles.input}
-            placeholder="Password"
+          <ThemedInput
+            label="Parolă"
+            placeholder="Alegeți o parolă"
             value={password}
             onChangeText={setPassword}
-            secureTextEntry
-            autoCapitalize="none"
-            autoComplete="password"
-            editable={!loading}
+            secureTextEntry={!showPassword}
+            rightIcon={
+              <Ionicons 
+                name={showPassword ? "eye-off-outline" : "eye-outline"} 
+                size={20} 
+                color={Colors.light.icon} 
+              />
+            }
+            onRightIconPress={() => setShowPassword(!showPassword)}
           />
 
-          <TextInput
-            style={styles.input}
-            placeholder="Confirm Password"
+          <ThemedInput
+            label="Confirmă Parola"
+            placeholder="Reintroduceți parola"
             value={confirmPassword}
             onChangeText={setConfirmPassword}
-            secureTextEntry
-            autoCapitalize="none"
-            autoComplete="password"
-            editable={!loading}
+            secureTextEntry={!showPassword}
           />
 
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleSignup}
-            disabled={loading}
-          >
-            <Text style={styles.buttonText}>
-              {loading ? 'Creating Account...' : 'Sign Up'}
-            </Text>
-          </TouchableOpacity>
+          <ThemedButton 
+            title="Înregistrare" 
+            onPress={handleSignup} 
+            loading={loading}
+            style={styles.signupButton}
+          />
 
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Already have an account? </Text>
-            <TouchableOpacity onPress={() => router.push('/auth/login')} disabled={loading}>
-              <Text style={styles.link}>Sign In</Text>
-            </TouchableOpacity>
+            <ThemedText style={styles.footerText}>Ai deja un cont? </ThemedText>
+            <ThemedButton 
+              title="Autentificare" 
+              onPress={() => router.push('/auth/login')} 
+              type="ghost"
+              style={{ paddingVertical: 0, minHeight: 0 }}
+              textStyle={{ color: Colors.light.primary, fontSize: 14 }}
+            />
           </View>
         </View>
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   content: {
     flex: 1,
+    paddingHorizontal: 24,
     justifyContent: 'center',
-    padding: 24,
+  },
+  headerContainer: {
+    alignItems: 'center',
+    marginBottom: 40,
   },
   title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#333',
     marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
-    marginBottom: 32,
+    opacity: 0.7,
     textAlign: 'center',
   },
-  form: {
+  formContainer: {
     width: '100%',
   },
-  input: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 16,
-    fontSize: 16,
+  signupButton: {
+    marginTop: 16,
+    marginBottom: 24,
+  },
+  errorText: {
+    color: '#D32F2F',
     marginBottom: 16,
-  },
-  button: {
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  buttonDisabled: {
-    backgroundColor: '#ccc',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    textAlign: 'center',
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 24,
+    alignItems: 'center',
+    marginTop: 16,
   },
   footerText: {
-    color: '#666',
     fontSize: 14,
-  },
-  link: {
-    color: '#007AFF',
-    fontSize: 14,
-    fontWeight: '600',
+    opacity: 0.7,
   },
 });

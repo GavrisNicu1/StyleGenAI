@@ -15,6 +15,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
 import { API_BASE_URL } from '@/constants/config';
 import { router } from 'expo-router';
+import { ThemedView } from '@/components/themed-view';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedButton } from '@/components/ui/ThemedButton';
+import { Colors } from '@/constants/theme';
 
 interface Outfit {
   id: number;
@@ -231,17 +235,17 @@ export default function ProfileScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <ThemedView style={styles.container}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {/* Profile Header */}
-        <View style={styles.profileHeader}>
+        <View style={[styles.profileHeader, { backgroundColor: Colors.light.card }]}>
           <View style={styles.avatarContainer}>
-            <Ionicons name="person-circle" size={80} color="#007AFF" />
+            <Ionicons name="person-circle" size={80} color={Colors.light.primary} />
           </View>
-          <Text style={styles.userEmail}>{user?.email}</Text>
+          <ThemedText type="gucciTitle" style={styles.userEmail}>{user?.email}</ThemedText>
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
               <Text style={styles.statNumber}>{savedOutfits.length}</Text>
@@ -254,19 +258,29 @@ export default function ProfileScreen() {
               <Text style={styles.statLabel}>Favorite</Text>
             </View>
           </View>
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Ionicons name="log-out-outline" size={20} color="#e74c3c" />
-            <Text style={styles.logoutButtonText}>Deconectare</Text>
-          </TouchableOpacity>
+          <View style={{ width: '100%', gap: 10, marginTop: 20 }}>
+            <ThemedButton 
+              title="Setări Profil" 
+              onPress={() => Alert.alert("Setări", "Configurarea contului va fi disponibilă în curând.")}
+              type="tertiary"
+              icon="settings-outline"
+            />
+            <ThemedButton 
+              title="Deconectare" 
+              onPress={handleLogout}
+              type="secondary"
+              icon="log-out-outline"
+            />
+          </View>
         </View>
 
         {/* Saved Outfits Section */}
         <View style={styles.outfitsSection}>
-          <Text style={styles.sectionTitle}>Ținutele mele salvate</Text>
+          <ThemedText type="subtitle" style={styles.sectionTitle}>Ținutele mele salvate</ThemedText>
 
           {loading ? (
             <View style={styles.centered}>
-              <ActivityIndicator size="large" color="#007AFF" />
+              <ActivityIndicator size="large" color="#115740" />
               <Text style={styles.loadingText}>Se încarcă...</Text>
             </View>
           ) : savedOutfits.length === 0 ? (
@@ -289,7 +303,7 @@ export default function ProfileScreen() {
           )}
         </View>
       </ScrollView>
-    </View>
+    </ThemedView>
   );
 }
 
