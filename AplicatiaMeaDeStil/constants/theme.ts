@@ -8,37 +8,38 @@ import { Platform } from 'react-native';
 const tintColorLight = '#000080'; // Classic vibrant Navy Blue
 const tintColorDark = '#F7F5F0'; // Cream for dark mode active
 
-// Gucci Style Palette
+// Gucci Style Palette (Restored)
 const gucciGreen = '#115740'; // Classic darker green
 const gucciRed = '#B01824';   // Deep rich red
-const gucciCream = '#866c2a'; // Elegant off-white/beige background
-const gucciGold = '#C5A059';  // Muted luxury gold
-const gucciNavy = '#000080';  // Classic vibrant Navy Blue
+const gucciCream = '#EBE7D9'; // More visible elegant beige/cream for background
+const gucciGold = '#D4AF37';  // Luxury Gold
+const navyBlue = '#000080';   // Navy Blue for bottom tabs
+const darkBackground = '#151718';
 
 export const Colors = {
   light: {
-    text: '#000080',       // Navy Blue text
+    text: gucciGreen,      // Use Green for text to match style
     background: gucciCream, // Signature Cream background
-    tint: tintColorLight,
-    icon: '#4B5E85',       // Lighter Blue-Grey for inactive tabs (instead of plain grey)
-    tabIconDefault: '#4B5E85',
-    tabIconSelected: tintColorLight,
+    tint: navyBlue,        // Navy Blue for active tabs
+    icon: '#687076',
+    tabIconDefault: '#687076',
+    tabIconSelected: navyBlue, // Navy Blue for active tabs
     primary: gucciGreen,
     secondary: gucciRed,
-    tertiary: gucciGold, // Changed to Gold for borders/accents
-    card: '#FFFFFF',       // Clean white for cards to pop against cream
+    tertiary: gucciGold,
+    card: '#FFFFFF',
   },
   dark: {
-    text: '#F7F5F0',       // Cream text
-    background: '#f5f2af', // Very dark green/black background for dark mode
-    tint: tintColorDark,
+    text: gucciCream,
+    background: darkBackground,
+    tint: navyBlue,        // Navy Blue for active tabs
     icon: '#9BA1A6',
     tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
+    tabIconSelected: navyBlue, // Navy Blue for active tabs
     primary: gucciGreen,
-    secondary: gucciRed,
-    tertiary: gucciNavy, // Changed to Navy Blue per user request
-    card: '#99b619',       // Dark green card background
+    secondary: gucciGold,
+    tertiary: gucciCream,
+    card: '#232526',
   },
 };
 

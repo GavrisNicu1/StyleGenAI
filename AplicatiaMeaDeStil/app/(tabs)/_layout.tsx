@@ -7,6 +7,12 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/context/AuthContext';
 
+const homeTabIcon = ({ color }: { color: string }) => <IconSymbol size={28} name="house.fill" color={color} />;
+const exploreTabIcon = ({ color }: { color: string }) => <IconSymbol size={28} name="paperplane.fill" color={color} />;
+const historyTabIcon = ({ color }: { color: string }) => <IconSymbol size={28} name="clock.fill" color={color} />;
+const adminTabIcon = ({ color }: { color: string }) => <IconSymbol size={28} name="shield.fill" color={color} />;
+const profileTabIcon = ({ color }: { color: string }) => <IconSymbol size={28} name="person.fill" color={color} />;
+
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const { isAdmin } = useAuth();
@@ -31,35 +37,42 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          tabBarIcon: homeTabIcon,
         }}
       />
       <Tabs.Screen
         name="explore"
         options={{
           title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          tabBarIcon: exploreTabIcon,
         }}
       />
       <Tabs.Screen
         name="history"
         options={{
           title: 'History',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="clock.fill" color={color} />,
+          tabBarIcon: historyTabIcon,
         }}
       />
       <Tabs.Screen
         name="admin"
         options={{
           title: 'Admin',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="shield.fill" color={color} />,
+          tabBarIcon: adminTabIcon,
           href: isAdmin ? '/(tabs)/admin' : null, // Hide tab if not admin
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          href: null, // Hide from tab bar - will be accessed from header
+          title: 'Profile',
+          tabBarIcon: profileTabIcon,
+        }}
+      />
+      <Tabs.Screen
+        name="outfit-detail"
+        options={{
+          href: null,
         }}
       />
     </Tabs>

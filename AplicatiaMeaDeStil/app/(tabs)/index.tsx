@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Button,
   Image,
   ScrollView,
   StyleSheet,
@@ -21,10 +20,8 @@ import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { ThemedView } from '@/components/themed-view';
-import { ThemedText } from '@/components/themed-text';
 import { ThemedButton } from '@/components/ui/ThemedButton';
 import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import SilhouetteSuplu from './assets/silhouette_suplu.png';
 import SilhouetteMediu from './assets/silhouette_mediu.png';
 import SilhouetteRobust from './assets/silhouette_robust.png';
@@ -44,7 +41,69 @@ const FOOTWEAR_CATEGORIES = ['Adidași', 'Pantofi', 'Ghete', 'Altele'] as const;
 type ClothingCategory = (typeof CLOTHING_CATEGORIES)[number];
 type FootwearCategory = (typeof FOOTWEAR_CATEGORIES)[number];
 type CategoryType = 'îmbrăcăminte' | 'încălțăminte';
-type WardrobeCategory = ClothingCategory | FootwearCategory;
+
+const MEN_CATEGORY_PRESETS: Record<StyleOption, { vara: readonly string[]; rece: readonly string[] }> = {
+  Casual: {
+    vara: [
+      'Vesta',
+      'Cămașă',
+      'Compleuri și Treninguri',
+      'Bluze și Hanorace',
+      'Tricou',
+      'Pantalon',
+      'Blugi',
+      'Pantaloni scurți',
+    ],
+    rece: [
+      'Geacă',
+      'Palton',
+      'Vesta',
+      'Cămașă',
+      'Compleuri și Treninguri',
+      'Pulovere și cardigane',
+      'Bluze și Hanorace',
+      'Tricou',
+      'Pantalon',
+      'Blugi',
+    ],
+  },
+  Elegant: {
+    vara: [
+      'Costume',
+      'Sacouri',
+      'Cămăși',
+      'Pantalon',
+    ],
+    rece: [
+      'Paltoane',
+      'Geci',
+      'Costume',
+      'Sacouri',
+      'Cămăși',
+      'Malete și Pulovere',
+      'Pantalon',
+    ],
+  },
+  Sport: {
+    vara: [
+      'Veste',
+      'Treninguri',
+      'Bluze',
+      'Pantalon',
+      'Colanți',
+      'Pantaloni scurți',
+    ],
+    rece: [
+      'Geci',
+      'Veste',
+      'Treninguri',
+      'Bluze',
+      'Pantalon',
+      'Colanți',
+      'Pantaloni scurți',
+    ],
+  },
+};
 
 
 function getCategories({ categoryType, season, style, gender }: {
@@ -52,86 +111,14 @@ function getCategories({ categoryType, season, style, gender }: {
   season: SeasonOption;
   style: StyleOption;
   gender: GenderOption;
-}): readonly WardrobeCategory[] {
-  if (categoryType === 'încălțăminte') return FOOTWEAR_CATEGORIES;
-
-  // Implementare finală pentru Casual, bărbați
-  if (style === 'Casual' && gender === 'Barbati') {
-    if (season === 'Vara') {
-      return [
-        'Vesta',
-        'Cămașă',
-        'Compleuri și Treninguri',
-        'Bluze și Hanorace',
-        'Tricou',
-        'Pantalon',
-        'Blugi',
-        'Pantaloni scurți',
-      ];
-    } else {
-      // Toamna/Primavara, Iarna
-      return [
-        'Geacă',
-        'Palton',
-        'Vesta',
-        'Cămașă',
-        'Compleuri și Treninguri',
-        'Pulovere și cardigane',
-        'Bluze și Hanorace',
-        'Tricou',
-        'Pantalon',
-        'Blugi',
-      ];
-    }
+}): readonly string[] {
+  if (categoryType === 'încălțăminte') {
+    return FOOTWEAR_CATEGORIES;
   }
-  // Elegant, bărbați
-  if (style === 'Elegant' && gender === 'Barbati') {
-    if (season === 'Vara') {
-      return [
-        'Costume',
-        'Sacouri',
-        'Cămăși',
-        'Pantalon',
-      ];
-    } else {
-      // Toamnă/Primăvară, Iarna
-      return [
-        'Paltoane',
-        'Geci',
-        'Costume',
-        'Sacouri',
-        'Cămăși',
-        'Malete și Pulovere',
-        'Pantalon',
-      ];
-    }
+  if (gender === 'Barbati') {
+    const seasonGroup = season === 'Vara' ? 'vara' : 'rece';
+    return MEN_CATEGORY_PRESETS[style][seasonGroup];
   }
-  // Sport, bărbați
-  if (style === 'Sport' && gender === 'Barbati') {
-    if (season === 'Vara') {
-      return [
-        'Veste',
-        'Treninguri',
-        'Bluze',
-        'Pantalon',
-        'Colanți',
-        'Pantaloni scurți',
-      ];
-    } else {
-      // Toamnă/Primăvară, Iarna
-      return [
-        'Geci',
-        'Veste',
-        'Treninguri',
-        'Bluze',
-        'Pantalon',
-        'Colanți',
-        'Pantaloni scurți',
-      ];
-    }
-  }
-  
-  // Default fallback pentru alte combinații de style/gender
   return BASE_CLOTHING_CATEGORIES;
 }
 
@@ -155,7 +142,7 @@ type SilhouetteOption = (typeof SILUETE)[number];
 type WardrobeItem = {
   id: string;
   uri: string;
-  category: WardrobeCategory;
+  category: string;
   categoryType: CategoryType;
 };
 
@@ -344,7 +331,7 @@ const App = () => {
   const [isCategoryModalVisible, setCategoryModalVisible] = useState(false);
   const [isSourceModalVisible, setSourceModalVisible] = useState(false);
   const [currentCategoryType, setCurrentCategoryType] = useState<CategoryType>('îmbrăcăminte');
-  const [currentCategory, setCurrentCategory] = useState<WardrobeCategory | null>(null);
+  const [currentCategory, setCurrentCategory] = useState<string | null>(null);
   const [backendUrl, setBackendUrl] = useState<string>(DEFAULT_BACKEND_URL);
 
   // Redirect to login if not authenticated (with safety check)
@@ -376,7 +363,7 @@ const App = () => {
     setCategoryModalVisible(true);
   };
 
-  const onCategorySelect = (category: WardrobeCategory) => {
+  const onCategorySelect = (category: string) => {
     setCurrentCategory(category);
     setCategoryModalVisible(false);
     setSourceModalVisible(true);
@@ -434,19 +421,95 @@ const App = () => {
   };
 
   // Heuristici robuste: dacă e îmbrăcăminte și NU e "pantalon"/"fustă" => tratăm ca top (tricou/bluză/geacă/altul)
-  const isBottom = (cat: WardrobeCategory) => /pantalon|fustă/i.test(String(cat));
-  const isTop = (cat: WardrobeCategory) => !isBottom(cat);
+  const isBottom = (cat: string) => /pantalon|fustă/i.test(String(cat));
+  const isTop = (cat: string) => !isBottom(cat);
   const topsCount = selectedItems.filter(i => i.categoryType === 'îmbrăcăminte' && isTop(i.category)).length;
   const bottomsCount = selectedItems.filter(i => i.categoryType === 'îmbrăcăminte' && isBottom(i.category)).length;
   const shoesCount = selectedItems.filter(i => i.categoryType === 'încălțăminte').length;
   const canGenerateOutfit = topsCount >= 5 && bottomsCount >= 5 && shoesCount >= 5;
 
+  const getMissingInventoryMessages = () => {
+    const missing: string[] = [];
+    if (topsCount < 5) missing.push(`mai ai nevoie de ${5 - topsCount} top-uri (Tricou/Bluză/Geacă)`);
+    if (bottomsCount < 5) missing.push(`mai ai nevoie de ${5 - bottomsCount} piese jos (Pantalon/Fustă)`);
+    if (shoesCount < 5) missing.push(`mai ai nevoie de ${5 - shoesCount} perechi încălțăminte`);
+    return missing;
+  };
+
+  const appendNativeFilesToFormData = (formData: FormData) => {
+    selectedItems.forEach((item, index) => {
+      const fileType = item.uri.split('.').pop()?.toLowerCase() ?? 'jpeg';
+      const file = {
+        uri: item.uri,
+        name: `photo_${index}.${fileType}`,
+        type: `image/${fileType}`,
+      } as const;
+      formData.append('files', file as unknown as Blob);
+      formData.append('categories', item.category);
+    });
+  };
+
+  const appendWebFilesToFormData = async (formData: FormData) => {
+    for (let index = 0; index < selectedItems.length; index++) {
+      const item = selectedItems[index];
+      try {
+        const resp = await fetch(item.uri);
+        const blob = await resp.blob();
+        const mime = blob.type || 'image/jpeg';
+        const ext = (mime.split('/')[1] || 'jpg').toLowerCase();
+        const file = new File([blob], `photo_${index}.${ext}`, { type: mime });
+        formData.append('files', file);
+        formData.append('categories', item.category);
+      } catch (e) {
+        console.warn('Failed to make File from URI', item.uri, e);
+      }
+    }
+  };
+
+  const buildGenerateFormData = async () => {
+    const formData = new FormData();
+    formData.append('style_filter', selectedStyle.toLowerCase());
+    formData.append('season', selectedSeason.toLowerCase());
+    formData.append('gender', selectedGender.toLowerCase());
+    formData.append('silhouette', selectedSilhouette.toLowerCase());
+
+    if (Platform.OS === 'web') {
+      await appendWebFilesToFormData(formData);
+    } else {
+      appendNativeFilesToFormData(formData);
+    }
+    return formData;
+  };
+
+  const applyGenerateResult = (result: BackendResponse) => {
+    if (isBackendSuccess(result)) {
+      const normalized: OutfitSuggestion = {
+        top: normalizePiece(result.outfit_suggestion.top),
+        bottom: normalizePiece(result.outfit_suggestion.bottom),
+        shoes: normalizePiece(result.outfit_suggestion.shoes),
+        analysis: result.outfit_suggestion.analysis,
+      };
+      setOutfitSuggestion(normalized);
+      setOutfitSaved(false);
+      fetchWebAlternative({
+        style: selectedStyle,
+        season: selectedSeason,
+        gender: selectedGender,
+        trendColors: normalized.analysis?.trend_colors_used,
+        pieceColors: normalized.analysis?.piece_colors,
+      });
+      return;
+    }
+    if (isBackendError(result)) {
+      setOutfitSuggestion({ error: result.message ?? 'Eroare de la server.' });
+      return;
+    }
+    setOutfitSuggestion({ error: 'Răspuns neașteptat de la server.' });
+  };
+
   const handleGenerateOutfit = async () => {
     if (!canGenerateOutfit) {
-      const missing: string[] = [];
-      if (topsCount < 5) missing.push(`mai ai nevoie de ${5 - topsCount} top-uri (Tricou/Bluză/Geacă)`);
-      if (bottomsCount < 5) missing.push(`mai ai nevoie de ${5 - bottomsCount} piese jos (Pantalon/Fustă)`);
-      if (shoesCount < 5) missing.push(`mai ai nevoie de ${5 - shoesCount} perechi încălțăminte`);
+      const missing = getMissingInventoryMessages();
       Alert.alert('Inventar insuficient', missing.join('\n'));
       return;
     }
@@ -460,44 +523,8 @@ const App = () => {
     }, {});
     console.log('[DEBUG] category histogram', catStats);
 
-    const formData = new FormData();
-    formData.append('style_filter', selectedStyle.toLowerCase());
-    formData.append('season', selectedSeason.toLowerCase());
-    formData.append('gender', selectedGender.toLowerCase());
-    formData.append('silhouette', selectedSilhouette.toLowerCase());
-
-    // Debug verificare ordonare & număr
     console.log('[DEBUG] sending', selectedItems.length, 'items');
-
-    if (Platform.OS === 'web') {
-      // Pe web, FormData trebuie să primească un File/Blob real
-      for (let index = 0; index < selectedItems.length; index++) {
-        const item = selectedItems[index];
-        try {
-          const resp = await fetch(item.uri);
-          const blob = await resp.blob();
-          const mime = blob.type || 'image/jpeg';
-          const ext = (mime.split('/')[1] || 'jpg').toLowerCase();
-          const file = new File([blob], `photo_${index}.${ext}`, { type: mime });
-          formData.append('files', file);
-          formData.append('categories', item.category); // Send original Romanian category
-        } catch (e) {
-          console.warn('Failed to make File from URI', item.uri, e);
-        }
-      }
-    } else {
-      // Pe nativ, obiectul { uri, name, type } este acceptat de fetch cu FormData
-      selectedItems.forEach((item, index) => {
-        const fileType = item.uri.split('.').pop()?.toLowerCase() ?? 'jpeg';
-        const file = {
-          uri: item.uri,
-          name: `photo_${index}.${fileType}`,
-          type: `image/${fileType}`,
-        } as const;
-        formData.append('files', file as unknown as Blob);
-        formData.append('categories', item.category); // Send original Romanian category
-      });
-    }
+    const formData = await buildGenerateFormData();
     // Mismatch warning (should be equal)
     const categoriesCount = selectedItems.length;
     if (categoriesCount !== selectedItems.length) {
@@ -508,44 +535,18 @@ const App = () => {
     }
 
     setIsLoading(true);
-  setOutfitSuggestion(null);
-  setWebOutfit(null);
+    setOutfitSuggestion(null);
+    setWebOutfit(null);
 
     try {
-  const response = await fetch(`${backendUrl}/get_suggestion`, {
+      const response = await fetch(`${backendUrl}/get_suggestion`, {
         method: 'POST',
         body: formData,
       });
 
       const result: BackendResponse = await response.json();
       console.log('Backend response:', result);
-
-      if (isBackendSuccess(result)) {
-        console.log('Success! Processing outfit...');
-        // Normalizăm piesele: dacă path lipsește, folosim transparent_path sau original_path
-        const normalized: OutfitSuggestion = {
-          top: normalizePiece(result.outfit_suggestion.top),
-          bottom: normalizePiece(result.outfit_suggestion.bottom),
-          shoes: normalizePiece(result.outfit_suggestion.shoes),
-          analysis: result.outfit_suggestion.analysis,
-        };
-        console.log('Normalized outfit:', normalized);
-        setOutfitSuggestion(normalized);
-        setOutfitSaved(false); // Reset saved state when new outfit is generated
-        // Cerem și alternativa din web, opțional
-        fetchWebAlternative({
-          style: selectedStyle,
-          season: selectedSeason,
-          gender: selectedGender,
-          trendColors: normalized.analysis?.trend_colors_used,
-          pieceColors: normalized.analysis?.piece_colors,
-        });
-      } else if (isBackendError(result)) {
-        console.log('Backend error:', result.message);
-        setOutfitSuggestion({ error: result.message ?? 'Eroare de la server.' });
-      } else {
-        setOutfitSuggestion({ error: 'Răspuns neașteptat de la server.' });
-      }
+      applyGenerateResult(result);
     } catch (error) {
       console.error('generate outfit', error);
       Alert.alert('Eroare de rețea', 'Nu m-am putut conecta la serverul AI.');
@@ -572,7 +573,7 @@ const App = () => {
         ? Object.fromEntries(
             Object.entries(pieceColors)
               .filter(([, value]) => typeof value === 'string' && value.trim().length)
-              .map(([key, value]) => [key, value!.toLowerCase()])
+              .map(([key, value]) => [key, String(value).toLowerCase()])
           )
         : undefined;
 
@@ -641,7 +642,7 @@ const App = () => {
       const firstPiece = outfitSuggestion.top || outfitSuggestion.bottom || outfitSuggestion.shoes;
       
       // Verificăm dacă există o piesă cu path valid
-      if (!firstPiece || !firstPiece.path) {
+      if (!firstPiece?.path) {
         Alert.alert('Eroare', 'Nu există imagini în outfit pentru salvare');
         console.error('[SAVE] No valid piece with path found:', { top: outfitSuggestion.top, bottom: outfitSuggestion.bottom, shoes: outfitSuggestion.shoes });
         return;
@@ -1145,50 +1146,70 @@ const CompareOutfits: React.FC<CompareOutfitsProps> = ({ mySuggestion, webSugges
     { label: 'Încălțăminte', piece: right.shoes },
   ];
 
+  const openSource = (url?: string | null) => {
+    if (url) {
+      WebBrowser.openBrowserAsync(String(url));
+    }
+  };
+
+  const renderAlternatives = (piece?: OutfitPiece) => {
+    const alternatives = Array.isArray((piece as any)?.alternatives)
+      ? ((piece as any).alternatives as OutfitPiece[]).slice(0, 2)
+      : [];
+
+    if (alternatives.length === 0) {
+      return null;
+    }
+
+    return (
+      <View style={{ flexDirection: 'row', gap: 6, marginTop: 6 }}>
+        {alternatives.map((alt) => {
+          const altSrc = getPieceImageSource(alt, baseUrl);
+          const altKey = String(alt.source_url ?? alt.path ?? alt.title ?? 'alternative');
+          return altSrc ? (
+            <TouchableOpacity key={altKey} onPress={() => openSource(alt.source_url)}>
+              <Image source={altSrc} style={{ width: 64, height: 64, borderRadius: 8 }} />
+            </TouchableOpacity>
+          ) : (
+            <View key={altKey} style={[{ width: 64, height: 64, borderRadius: 8 }, styles.recommendedPlaceholder]} />
+          );
+        })}
+      </View>
+    );
+  };
+
+  const renderCompareCard = ({ label, piece }: { label: string; piece?: OutfitPiece }) => {
+    const source = getPieceImageSource(piece, baseUrl);
+    const displayLabel = piece?.category ?? label;
+    return (
+      <View key={label} style={styles.compareItem}>
+        {source ? (
+          <Image source={source} style={styles.compareImage} resizeMode="contain" />
+        ) : (
+          <View style={[styles.compareImage, styles.recommendedPlaceholder]}>
+            <Text style={styles.recommendedPlaceholderText}>Fără imagine</Text>
+          </View>
+        )}
+        <Text style={styles.recommendedLabel}>{displayLabel}</Text>
+        {piece?.source_url ? (
+          <TouchableOpacity
+            onPress={() => openSource(piece.source_url)}
+            style={styles.sourceLink}
+          >
+            <Text style={styles.sourceLinkText}>
+              Sursă: {piece.source_domain ?? 'link'}
+            </Text>
+          </TouchableOpacity>
+        ) : null}
+        {renderAlternatives(piece)}
+      </View>
+    );
+  };
+
   const renderColumn = (title: string, cards: { label: string; piece?: OutfitPiece }[]) => (
     <View style={styles.compareColumn}>
       <Text style={styles.resultSectionTitle}>{title}</Text>
-      {cards.map(({ label, piece }) => {
-        const source = getPieceImageSource(piece, baseUrl);
-        const displayLabel = piece?.category ?? label;
-        return (
-          <View key={label} style={styles.compareItem}>
-            {source ? (
-              <Image source={source} style={styles.compareImage} resizeMode="contain" />
-            ) : (
-              <View style={[styles.compareImage, styles.recommendedPlaceholder]}>
-                <Text style={styles.recommendedPlaceholderText}>Fără imagine</Text>
-              </View>
-            )}
-            <Text style={styles.recommendedLabel}>{displayLabel}</Text>
-            {piece?.source_url ? (
-              <TouchableOpacity
-                onPress={() => WebBrowser.openBrowserAsync(String(piece.source_url))}
-                style={styles.sourceLink}
-              >
-                <Text style={styles.sourceLinkText}>
-                  Sursă: {piece.source_domain ?? 'link'}
-                </Text>
-              </TouchableOpacity>
-            ) : null}
-            {/* Thumbnails pentru alternative (top 3 per categorie) */}
-            {Array.isArray((piece as any)?.alternatives) && (piece as any).alternatives.length > 0 ? (
-              <View style={{ flexDirection: 'row', gap: 6, marginTop: 6 }}>
-                {((piece as any).alternatives as OutfitPiece[]).slice(0, 2).map((alt, idx) => {
-                  const altSrc = getPieceImageSource(alt, baseUrl);
-                  return altSrc ? (
-                    <TouchableOpacity key={idx} onPress={() => alt.source_url && WebBrowser.openBrowserAsync(String(alt.source_url))}>
-                      <Image source={altSrc} style={{ width: 64, height: 64, borderRadius: 8 }} />
-                    </TouchableOpacity>
-                  ) : (
-                    <View key={idx} style={[{ width: 64, height: 64, borderRadius: 8 }, styles.recommendedPlaceholder]} />
-                  );
-                })}
-              </View>
-            ) : null}
-          </View>
-        );
-      })}
+      {cards.map(renderCompareCard)}
     </View>
   );
 

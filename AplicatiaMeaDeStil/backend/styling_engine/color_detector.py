@@ -1,6 +1,5 @@
 from typing import Dict
 from PIL import Image
-import numpy as np
 
 # Minimal color analysis that returns a rough dominant color name
 
@@ -31,17 +30,12 @@ def _closest_name(rgb):
 def process_image_color(path: str) -> Dict:
     try:
         with Image.open(path).convert("RGBA") as im:
-            arr = np.asarray(im)
-            # Ignore fully transparent pixels
-            if arr.shape[-1] == 4:
-                mask = arr[:, :, 3] > 0
-                rgb = arr[:, :, :3][mask]
-            else:
-                rgb = arr.reshape(-1, 3)
-            if rgb.size == 0:
+            pixels = [px[:3] for px in im.getdata() if px[3] > 0]
+            if not pixels:
                 dom = (200, 200, 200)
             else:
-                dom = tuple(np.mean(rgb, axis=0).astype(int))
+                count = len(pixels)
+                dom = tuple(int(sum(channel[i] for channel in pixels) / count) for i in range(3))
             name = _closest_name(dom)
             return {"dominant_rgb": dom, "dominant_name": name}
     except Exception:

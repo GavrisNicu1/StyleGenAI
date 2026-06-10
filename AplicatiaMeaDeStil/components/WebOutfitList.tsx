@@ -68,96 +68,120 @@ const CATEGORY_MAP: Record<string, string> = {
   outerwear: 'geaca',
 };
 
-function buildFilteredUrl(site: { name: string; url: string }, item: WebItem, style: string) {
-  // Normalizez categoria
-  let rawCategory = item.category?.toLowerCase() || '';
-  let category = CATEGORY_MAP[rawCategory] || rawCategory;
-  const color = item.title?.toLowerCase().match(/(alb|albastru|negru|rosu|gri|bej|verde|roz|mov|portocaliu|galben)/)?.[1] || '';
-  // AboutYou: filtrare avansată
-  if (site.name === 'AboutYou') {
-    let base = '';
-    if (category === 'pantalon') base = 'https://www.aboutyou.ro/c/barbati/haine/pantaloni-20330';
-    else if (category === 'geaca') base = 'https://www.aboutyou.ro/c/barbati/haine/geci-20320';
-    else if (category === 'adidasi') base = 'https://www.aboutyou.ro/c/barbati/pantofi/sneakers-20345';
-    else base = 'https://www.aboutyou.ro/c/barbati/haine/tricouri-20324';
-    // Filtrare pe cod de culoare dacă există
-    const colorCode = ABOUTYOU_COLOR_CODES[color] || '';
-    if (colorCode && (category === 'pantalon' || category === 'tricou')) return `${base}?color=${colorCode}`;
-    if (color && (category === 'pantalon' || category === 'tricou')) return `${base}?color=${encodeURIComponent(color)}`;
-    return base;
-  }
+const CATEGORY_PATHS: Record<string, { pantalon: string; geaca: string; adidasi: string; default: string }> = {
+  'Massimo Dutti': {
+    pantalon: 'https://www.massimodutti.com/ro/men/clothing/trousers-c1030004.html',
+    geaca: 'https://www.massimodutti.com/ro/men/clothing/jackets-c1030006.html',
+    adidasi: 'https://www.massimodutti.com/ro/men/shoes/all-shoes-c1030010.html',
+    default: 'https://www.massimodutti.com/ro/men/clothing/t-shirts-c1030002.html',
+  },
+  'Tommy Hilfiger': {
+    pantalon: 'https://ro.tommy.com/ro/barbati/imbracaminte/pantaloni.html',
+    geaca: 'https://ro.tommy.com/ro/barbati/imbracaminte/geci-si-jachete.html',
+    adidasi: 'https://ro.tommy.com/ro/barbati/incaltaminte/adidasi-si-sneakers.html',
+    default: 'https://ro.tommy.com/ro/barbati/imbracaminte/tricouri.html',
+  },
+  Nike: {
+    pantalon: 'https://www.nike.com/ro/w/mens-pants-38fyznik1',
+    geaca: 'https://www.nike.com/ro/w/mens-tops-shirts-9om13znik1',
+    adidasi: 'https://www.nike.com/ro/w/mens-shoes-nik1zy7ok',
+    default: 'https://www.nike.com/ro/w/mens-tops-shirts-9om13znik1',
+  },
+  Adidas: {
+    pantalon: 'https://www.adidas.ro/barbati-pantaloni',
+    geaca: 'https://www.adidas.ro/barbati-tricouri',
+    adidasi: 'https://www.adidas.ro/barbati-pantofi',
+    default: 'https://www.adidas.ro/barbati-tricouri',
+  },
+  'Under Armour': {
+    pantalon: 'https://www.underarmour.ro/barbati/pantaloni',
+    geaca: 'https://www.underarmour.ro/barbati/tricouri',
+    adidasi: 'https://www.underarmour.ro/barbati/pantofi',
+    default: 'https://www.underarmour.ro/barbati/tricouri',
+  },
+  Zara: {
+    pantalon: 'https://www.zara.com/ro/ro/barbati-pantaloni-l838.html',
+    geaca: 'https://www.zara.com/ro/ro/barbati-geci-l640.html',
+    adidasi: 'https://www.zara.com/ro/ro/barbati-pantofi-l839.html',
+    default: 'https://www.zara.com/ro/ro/barbati-tricouri-l855.html',
+  },
+  'Ralph Lauren': {
+    pantalon: 'https://www.ralphlauren.eu/ro/en/men/clothing/1020?prefn1=CategoryCode&prefv1=Trousers',
+    geaca: 'https://www.ralphlauren.eu/ro/men-clothing-jackets',
+    adidasi: 'https://www.ralphlauren.eu/ro/men-shoes',
+    default: 'https://www.ralphlauren.eu/ro/men-clothing-t-shirts',
+  },
+};
 
-  // Answear: filtrare pe categorie și culoare
-  if (site.name === 'Answear') {
-    let base = 'https://answear.ro/s?q=';
-    let query = category;
-    if (color) query += ` ${color}`;
-    return `${base}${encodeURIComponent(query)}`;
-  }
+const DIRECT_URL_SITES = new Set(['Seroussi', 'Hugo Boss']);
 
-  // FashionDays: filtrare pe categorie și culoare
-  if (site.name === 'FashionDays') {
-    let base = 'https://www.fashiondays.ro/search?term=';
-    let query = category;
-    if (color) query += ` ${color}`;
-    return `${base}${encodeURIComponent(query)}`;
-  }
-
-  // Epantofi: doar pantofi, filtrare pe culoare
-  if (site.name === 'Epantofi') {
-    let base = 'https://www.epantofi.ro/search?query=';
-    let query = category;
-    if (color) query += ` ${color}`;
-    return `${base}${encodeURIComponent(query)}`;
-  }
-  // Restul site-urilor: doar pe categorie
-  if (site.name === 'Massimo Dutti') {
-    if (category === 'pantalon') return 'https://www.massimodutti.com/ro/men/clothing/trousers-c1030004.html';
-    if (category === 'geaca') return 'https://www.massimodutti.com/ro/men/clothing/jackets-c1030006.html';
-    if (category === 'adidasi') return 'https://www.massimodutti.com/ro/men/shoes/all-shoes-c1030010.html';
-    return 'https://www.massimodutti.com/ro/men/clothing/t-shirts-c1030002.html';
-  }
-  if (site.name === 'Seroussi') return site.url;
-  if (site.name === 'Hugo Boss') return site.url;
-  if (site.name === 'Tommy Hilfiger') {
-    if (category === 'pantalon') return 'https://ro.tommy.com/ro/barbati/imbracaminte/pantaloni.html';
-    if (category === 'geaca') return 'https://ro.tommy.com/ro/barbati/imbracaminte/geci-si-jachete.html';
-    if (category === 'adidasi') return 'https://ro.tommy.com/ro/barbati/incaltaminte/adidasi-si-sneakers.html';
-    if (category === 'tricou') return 'https://ro.tommy.com/ro/barbati/imbracaminte/tricouri.html';
-    return site.url;
-  }
-  if (site.name === 'Nike') {
-    if (category === 'adidasi') return 'https://www.nike.com/ro/w/mens-shoes-nik1zy7ok';
-    if (category === 'pantalon') return 'https://www.nike.com/ro/w/mens-pants-38fyznik1';
-    return 'https://www.nike.com/ro/w/mens-tops-shirts-9om13znik1';
-  }
-  if (site.name === 'Adidas') {
-    if (category === 'adidasi') return 'https://www.adidas.ro/barbati-pantofi';
-    if (category === 'pantalon') return 'https://www.adidas.ro/barbati-pantaloni';
-    return 'https://www.adidas.ro/barbati-tricouri';
-  }
-  if (site.name === 'Under Armour') {
-    if (category === 'adidasi') return 'https://www.underarmour.ro/barbati/pantofi';
-    if (category === 'pantalon') return 'https://www.underarmour.ro/barbati/pantaloni';
-    return 'https://www.underarmour.ro/barbati/tricouri';
-  }
-  if (site.name === 'Zara') {
-    if (category === 'pantalon') return 'https://www.zara.com/ro/ro/barbati-pantaloni-l838.html';
-    if (category === 'geaca') return 'https://www.zara.com/ro/ro/barbati-geci-l640.html';
-    if (category === 'adidasi') return 'https://www.zara.com/ro/ro/barbati-pantofi-l839.html';
-    return 'https://www.zara.com/ro/ro/barbati-tricouri-l855.html';
-  }
-  if (site.name === 'Ralph Lauren') {
-    if (category === 'pantalon') return 'https://www.ralphlauren.eu/ro/en/men/clothing/1020?prefn1=CategoryCode&prefv1=Trousers';
-    if (category === 'geaca') return 'https://www.ralphlauren.eu/ro/men-clothing-jackets';
-    if (category === 'adidasi') return 'https://www.ralphlauren.eu/ro/men-shoes';
-    return 'https://www.ralphlauren.eu/ro/men-clothing-t-shirts';
-  }
-  // Fallback
-  return site.url;
+function mapCategory(item: WebItem): string {
+  const rawCategory = item.category?.toLowerCase() || '';
+  return CATEGORY_MAP[rawCategory] || rawCategory;
 }
 
-const { width } = Dimensions.get('window');
+function extractColor(item: WebItem): string {
+  const colorRegex = /(alb|albastru|negru|rosu|gri|bej|verde|roz|mov|portocaliu|galben)/;
+  const match = colorRegex.exec(item.title?.toLowerCase() ?? '');
+  return match?.[1] || '';
+}
+
+function resolveMappedCategoryUrl(site: { name: string; url: string }, category: string): string | null {
+  const paths = CATEGORY_PATHS[site.name];
+  if (!paths) {
+    return null;
+  }
+  if (category === 'pantalon') return paths.pantalon;
+  if (category === 'geaca') return paths.geaca;
+  if (category === 'adidasi') return paths.adidasi;
+  return paths.default;
+}
+
+function buildSearchUrl(base: string, category: string, color: string): string {
+  let query = category;
+  if (color) query += ` ${color}`;
+  return `${base}${encodeURIComponent(query)}`;
+}
+
+function buildAboutYouUrl(category: string, color: string): string {
+  let base = 'https://www.aboutyou.ro/c/barbati/haine/tricouri-20324';
+  if (category === 'pantalon') base = 'https://www.aboutyou.ro/c/barbati/haine/pantaloni-20330';
+  else if (category === 'geaca') base = 'https://www.aboutyou.ro/c/barbati/haine/geci-20320';
+  else if (category === 'adidasi') base = 'https://www.aboutyou.ro/c/barbati/pantofi/sneakers-20345';
+
+  const colorCode = ABOUTYOU_COLOR_CODES[color] || '';
+  if (colorCode && (category === 'pantalon' || category === 'tricou')) return `${base}?color=${colorCode}`;
+  if (color && (category === 'pantalon' || category === 'tricou')) return `${base}?color=${encodeURIComponent(color)}`;
+  return base;
+}
+
+function buildFilteredUrl(site: { name: string; url: string }, item: WebItem, style: string) {
+  const category = mapCategory(item);
+  const color = extractColor(item);
+
+  if (site.name === 'AboutYou') {
+    return buildAboutYouUrl(category, color);
+  }
+  if (site.name === 'Answear') {
+    return buildSearchUrl('https://answear.ro/s?q=', category, color);
+  }
+  if (site.name === 'FashionDays') {
+    return buildSearchUrl('https://www.fashiondays.ro/search?term=', category, color);
+  }
+  if (site.name === 'Epantofi') {
+    return buildSearchUrl('https://www.epantofi.ro/search?query=', category, color);
+  }
+  if (DIRECT_URL_SITES.has(site.name)) {
+    return site.url;
+  }
+
+  const mapped = resolveMappedCategoryUrl(site, category);
+  return mapped ?? site.url;
+}
+
+const { width } = typeof globalThis.innerWidth === 'number'
+  ? { width: globalThis.innerWidth }
+  : Dimensions.get('screen');
 
 // Definim structura datelor primite de la backend
 export interface WebItem {

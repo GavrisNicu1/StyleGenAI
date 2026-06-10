@@ -3,18 +3,15 @@ uvicorn[standard]==0.32.0
 python-multipart==0.0.9
 Flask==3.0.2
 flask-cors==4.0.0
-# rembg pinned version 2.0.57 no longer available / not compatible with current Python.
-# Updated to latest compatible release. If API changes, adjust import `from rembg import remove` accordingly.
-rembg==2.0.67
-Pillow==10.4.0
-opencv-python==4.10.0.84
-# numpy 1.26.4 has no wheels for Python 3.13; upgrade to a 2.x release that supports 3.13.
-numpy==2.1.3
-duckduckgo-search==6.3.7
+# rembg and heavy deps: commented for performance testing on restricted environment
+# rembg>=2.0.68
+Pillow==12.2.0
+# opencv-python==4.10.0.84
+# duckduckgo-search==6.3.7
 requests==2.32.3
 beautifulsoup4==4.12.3
 # Authentication & Database
-pyodbc==5.2.0
+# pyodbc==5.2.0
 bcrypt==4.2.1
 PyJWT==2.9.0
 python-dotenv==1.0.1

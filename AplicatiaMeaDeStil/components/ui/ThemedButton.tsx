@@ -1,8 +1,7 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View, ActivityIndicator, StyleProp, ViewStyle, TextStyle } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View, ActivityIndicator, StyleProp, ViewStyle, TextStyle, useColorScheme } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '@/constants/theme';
-import { useThemeColor } from '@/hooks/use-theme-color';
 import { Ionicons } from '@expo/vector-icons';
 
 type ButtonType = 'primary' | 'secondary' | 'tertiary' | 'outline' | 'ghost';
@@ -18,6 +17,8 @@ export interface ThemedButtonProps {
   disabled?: boolean;
 }
 
+type ReadonlyThemedButtonProps = Readonly<ThemedButtonProps>;
+
 export function ThemedButton({
   title,
   onPress,
@@ -27,63 +28,53 @@ export function ThemedButton({
   icon,
   loading = false,
   disabled = false,
-}: ThemedButtonProps) {
-  const theme = useThemeColor({}, 'background'); // Just to triger re-render on theme change if needed
-  // We'll use direct color references from Colors based on the user's preference for Emerald/Gold
-  // Note: For simplicity in this specific "luxury" request, we might force some colors 
-  // or adapt them to light/dark modes using the hooks if we wanted full adaptability.
-  // But the request specified Emerald & Gold specifically.
-  
-  const isDark = theme === '#121212'; // Rough check or use useColorScheme
+}: ReadonlyThemedButtonProps) {
+  const colorScheme = useColorScheme();
+  const theme = colorScheme === 'dark' ? 'dark' : 'light';
+  const themeColors = Colors[theme];
 
   const getColors = () => {
+    const primaryColors = {
+      background: [themeColors.primary, '#004D40'] as const,
+      text: '#FFFFFF',
+      icon: '#FFFFFF',
+      border: 'transparent'
+    };
+
     switch (type) {
       case 'primary':
-        return {
-          // Gucci Green Gradient or Solid Green
-          // Using a subtle gradient from Dark Green to slightly lighter Green
-          background: ['#115740', '#1A6B52'] as const, 
-          text: '#F7F5F0', // Cream Text on Green Button
-          icon: '#F7F5F0',
-          border: 'transparent'
-        };
+        return primaryColors;
       case 'secondary':
         return {
-          // Gucci Red Gradient
-          background: ['#8B131D', '#B01824'] as const, 
-          text: '#F7F5F0', // Cream Text on Red Button
-          icon: '#F7F5F0',
+          background: [themeColors.secondary, '#C5A059'] as const, 
+          text: '#000000', 
+          icon: '#000000',
           border: 'transparent'
         };
       case 'tertiary':
         return {
-          // Gucci Navy Blue Gradient
-          background: ['#1E2A3B', '#2C3E50'] as const,
-          text: '#F7F5F0', // Cream Text on Blue Button
-          icon: '#F7F5F0',
+          background: [themeColors.tertiary, '#000000'] as const,
+          text: '#FFFFFF',
+          icon: '#FFFFFF',
           border: 'transparent'
         };
       case 'outline':
         return {
           background: ['transparent', 'transparent'] as const,
-          text: '#115740', // Deep Green Text
-          icon: '#115740',
-          border: '#C5A059' // Gold Border
+          // Use tint (Gold) for outline on dark mode for high visibility
+          text: themeColors.tint, 
+          icon: themeColors.tint,
+          border: themeColors.tint
         };
       case 'ghost':
         return {
           background: ['transparent', 'transparent'] as const,
-          text: '#1E2A3B', // Navy Blue Text
-          icon: '#1E2A3B',
+          text: themeColors.text, 
+          icon: themeColors.text,
           border: 'transparent'
         };
       default:
-        return {
-          background: ['#115740', '#1A6B52'] as const,
-          text: '#F7F5F0',
-          icon: '#F7F5F0',
-          border: 'transparent'
-        };
+        return primaryColors;
     }
   };
 
@@ -106,7 +97,6 @@ export function ThemedButton({
     return (
       <TouchableOpacity
         onPress={onPress}
-        activeOpacity={0.7}
         disabled={loading || disabled}
         style={[
           styles.button,
@@ -114,10 +104,11 @@ export function ThemedButton({
             backgroundColor: 'transparent',
             borderColor: colors.border,
             borderWidth: type === 'outline' ? 1.5 : 0,
-            opacity: disabled ? 0.6 : 1
           },
+          disabled && styles.disabled,
           style,
-        ]}>
+        ]}
+      >
         {renderContent()}
       </TouchableOpacity>
     );
@@ -126,15 +117,19 @@ export function ThemedButton({
   return (
     <TouchableOpacity
       onPress={onPress}
-      activeOpacity={0.8}
       disabled={loading || disabled}
-      style={[styles.container, { opacity: disabled ? 0.7 : 1 }, style]}
+      style={[
+        styles.button,
+        styles.gradientButtonWrapper, 
+        disabled && styles.disabled, 
+        style
+      ]}
     >
       <LinearGradient
-        colors={colors.background as [string, string]}
+        colors={colors.background as readonly [string, string]}
+        style={styles.gradient}
         start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.button}
+        end={{ x: 1, y: 0 }}
       >
         {renderContent()}
       </LinearGradient>
@@ -143,26 +138,22 @@ export function ThemedButton({
 }
 
 const styles = StyleSheet.create({
-  container: {
-    borderRadius: 30,
-    overflow: 'hidden',
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.30,
-    shadowRadius: 4.65,
-    elevation: 8,
-  },
   button: {
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 30,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderRadius: 30, // Pill shape
     minHeight: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  gradientButtonWrapper: {
+    overflow: 'hidden',
+  },
+  gradient: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   contentContainer: {
     flexDirection: 'row',
@@ -172,10 +163,13 @@ const styles = StyleSheet.create({
   text: {
     fontSize: 16,
     fontWeight: '600',
-    letterSpacing: 0.5,
     textAlign: 'center',
+    letterSpacing: 0.5,
   },
   icon: {
     marginRight: 8,
+  },
+  disabled: {
+    opacity: 0.6,
   },
 });

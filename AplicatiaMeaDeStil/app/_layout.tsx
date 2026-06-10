@@ -28,7 +28,7 @@ export default function RootLayout() {
         } else if (typeof mod.useKeepAwake === 'function') {
           // Hook-ul nu poate fi folosit aici, ignorăm liniștit.
         }
-      } catch (e) {
+      } catch {
         // Ignorăm – pe unele device-uri modulul poate lipsi sau nu poate fi activat.
       }
     })();
@@ -49,10 +49,12 @@ export default function RootLayout() {
     <AuthProvider>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+          <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="auth/login" options={{ headerShown: false }} />
           <Stack.Screen name="auth/signup" options={{ headerShown: false }} />
+          <Stack.Screen name="auth/forgot-password" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
         </Stack>
         <StatusBar style="auto" />
       </ThemeProvider>

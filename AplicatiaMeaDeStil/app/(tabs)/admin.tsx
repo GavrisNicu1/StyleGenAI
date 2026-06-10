@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, Dimensions, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
 import { API_BASE_URL } from '@/constants/config';
@@ -96,7 +96,7 @@ export default function AdminScreen() {
       } else {
         Alert.alert('Error', data.message || 'Failed to load dashboard');
       }
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Could not fetch dashboard data');
     }
     
@@ -204,7 +204,7 @@ export default function AdminScreen() {
           <Text style={styles.sectionTitle}>Top Active Users</Text>
           <View style={styles.card}>
             {topUsers.map((user, index) => (
-              <View key={index} style={styles.userRow}>
+              <View key={user.email} style={styles.userRow}>
                 <View style={styles.userRank}>
                   <Text style={styles.rankText}>{index + 1}</Text>
                 </View>
@@ -221,8 +221,8 @@ export default function AdminScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Recent Activity (7 Days)</Text>
           <View style={styles.card}>
-            {activityData.map((item, index) => (
-              <View key={index} style={styles.activityRow}>
+            {activityData.map((item) => (
+              <View key={item.date} style={styles.activityRow}>
                 <Text style={styles.activityDate}>
                   {new Date(item.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                 </Text>
@@ -243,7 +243,6 @@ export default function AdminScreen() {
 
       {/* AI Metrics Section */}
       {aiMetrics && (
-        <>
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>
               <Ionicons name="analytics" size={20} color="#007AFF" /> AI Generation Metrics
@@ -269,8 +268,8 @@ export default function AdminScreen() {
             {aiMetrics.style_popularity.length > 0 && (
               <View style={styles.card}>
                 <Text style={styles.cardSubtitle}>Style Popularity</Text>
-                {aiMetrics.style_popularity.map((item, index) => (
-                  <View key={index} style={styles.popularityRow}>
+                {aiMetrics.style_popularity.map((item) => (
+                  <View key={item.style} style={styles.popularityRow}>
                     <Text style={styles.popularityStyle}>{item.style}</Text>
                     <View style={styles.popularityBarContainer}>
                       <View 
@@ -291,8 +290,8 @@ export default function AdminScreen() {
             {aiMetrics.timeline.length > 0 && (
               <View style={styles.card}>
                 <Text style={styles.cardSubtitle}>Generation Timeline (7 Days)</Text>
-                {aiMetrics.timeline.map((item, index) => (
-                  <View key={index} style={styles.timelineRow}>
+                {aiMetrics.timeline.map((item) => (
+                  <View key={item.date} style={styles.timelineRow}>
                     <Text style={styles.timelineDate}>
                       {new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                     </Text>
@@ -316,8 +315,8 @@ export default function AdminScreen() {
             {aiMetrics.common_errors.length > 0 && (
               <View style={styles.card}>
                 <Text style={styles.cardSubtitle}>Common Errors</Text>
-                {aiMetrics.common_errors.map((item, index) => (
-                  <View key={index} style={styles.errorRow}>
+                {aiMetrics.common_errors.map((item) => (
+                  <View key={item.error_message} style={styles.errorRow}>
                     <Ionicons name="warning" size={16} color="#FF3B30" />
                     <Text style={styles.errorMessage} numberOfLines={2}>{item.error_message}</Text>
                     <Text style={styles.errorCount}>×{item.count}</Text>
@@ -326,7 +325,6 @@ export default function AdminScreen() {
               </View>
             )}
           </View>
-        </>
       )}
 
       <View style={{ height: 40 }} />

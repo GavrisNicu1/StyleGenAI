@@ -1,100 +1,239 @@
 \chapter{Manual de Instalare și Utilizare}
 \label{cap:manual}
 
-Acest capitol oferă instrucțiuni detaliate pentru instalarea, configurarea și utilizarea aplicației StyleGenAI. Este structurat în două secțiuni majore: resurse necesare și ghidul utilizatorului.
+Acest capitol este dedicat descrierii practice a modului în care aplicația poate fi pusă în funcțiune și utilizată de către un utilizator final. Subunitățile următoare detaliază pașii necesari pentru instalarea completă a sistemului, inclusiv cerințele hardware și software, precum și un ghid vizual pas cu pas care acompaniază fiecare funcționalitate expusă în interfața grafică a utilizatorului.
 
 \section{Manual de Instalare}
 
-\subsection{Cerințe de Sistem}
-Pentru a rula aplicația într-un mediu de dezvoltare, sunt necesare următoarele resurse:
+Această secțiune descrie resursele necesare și etapele ce trebuie parcurse pentru instalarea și rularea locală a aplicației, acoperind atât componenta de server (backend), cât și aplicația mobilă (frontend).
 
-\textbf{Hardware:}
+\subsection{Resurse Hardware și Software Necesare}
+
+Pentru instalarea și rularea cu succes a platformei, sistemul gazdă trebuie să respecte următoarele cerințe minime:
+
+\textbf{Cerințe Hardware:}
 \begin{itemize}
-    \item Procesor: Minim Intel i5 sau echivalent.
-    \item Memorie RAM: Minim 8GB (recomandat 16GB pentru rularea modelelor AI local).
-    \item Stocare: Minim 2GB spațiu liber.
+    \item \textbf{Procesor:} Intel Core i5 / AMD Ryzen 5 sau superior.
+    \item \textbf{Memorie RAM:} Minim 8 GB (se recomandă 16 GB pentru o procesare optimă a imaginilor și rularea mediilor virtuale).
+    \item \textbf{Stocare:} Minim 5 GB spațiu liber pe disk pentru pachete, dependențe și baza de date.
+    \item \textbf{Dispozitiv Mobil:} Un telefon inteligent cu sistem de operare Android 9.0+ sau iOS 13.0+ (opțional, telefonul putând fi substituit de un emulator software montat pe PC).
 \end{itemize}
 
-\textbf{Software:}
+\textbf{Cerințe Software:}
 \begin{itemize}
-    \item Sistem de Operare: Windows 10/11, macOS sau Linux.
-    \item Python 3.8+ (pentru Backend).
-    \item Node.js 16+ și npm (pentru Frontend).
-    \item Expo Go instalat pe dispozitivul mobil (iOS/Android).
+    \item \textbf{Sistem de operare:} Windows 10/11, macOS sau orice distribuție modernă de Linux (ex. Ubuntu 20.04+).
+    \item \textbf{Limbajul Python:} Versiunea 3.9 sau superioară.
+    \item \textbf{Managerul de pachete pip:} Inclus implicit în instalările standard de Python.
+    \item \textbf{Node.js și npm:} Versiunea Node.js 16.x sau superioară.
+    \item \textbf{Expo Go:} Aplicație care trebuie instalată din Google Play Store sau Apple App Store pe dispozitivul mobil care va rula interfața.
+    \item \textbf{Git:} Pentru clonarea și descărcarea codului sursă.
 \end{itemize}
 
-\subsection{Pași de Instalare Backend}
+\subsection{Descrierea Pas cu Pas a Procesului de Instalare}
+
+Având în vedere că proiectul este constituit dintr-o arhitectură tip client-server, instalarea este divizată în două părți.
+
+\textbf{Partea 1: Instalarea și pornirea serverului Backend}
+
 \begin{enumerate}
-    \item Clonați repository-ul proiectului.
-    \item Navigați în folderul \texttt{backend}.
-    \item Creați un mediu virtual Python:
+    \item \textbf{Obținerea codului sursă:} Deschideți un terminal (ex. Command Prompt sau PowerShell) și rulați comanda de clonare a proiectului:
+    \begin{verbatim}
+    git clone <URL_REPOSITORY_PROIECT>
+    cd StyleGenAI_Frontend/AplicatiaMeaDeStil/backend
+    \end{verbatim}
+    
+    \item \textbf{Crearea mediului virtual:} Este recomandată crearea unui mediu virtual izolator pentru pachetele de Python, utilizând comanda:
     \begin{verbatim}
     python -m venv venv
     \end{verbatim}
-    \item Activați mediul virtual și instalați dependențele:
+    
+    \item \textbf{Activarea mediului virtual:}
+    \begin{itemize}
+        \item Pe Windows: \texttt{venv\textbackslash Scripts\textbackslash activate}
+        \item Pe macOS/Linux: \texttt{source venv/bin/activate}
+    \end{itemize}
+    
+    \item \textbf{Instalarea dependențelor:} Cu mediul activat, instalați bibliotecile necesare rulând:
     \begin{verbatim}
-    .\venv\Scripts\activate  (Windows)
     pip install -r requirements.txt
     \end{verbatim}
-    \item Inițializați baza de date (dacă este necesar):
+    
+    \item \textbf{Pornirea serverului:} Pentru a porni serviciile de backend destinate procesării, rulați comanda:
     \begin{verbatim}
-    python database_setup.py
+    python main.py 
     \end{verbatim}
-    \item Porniți serverul:
-    \begin{verbatim}
-    python app.py
-    \end{verbatim}
-    Serverul va rula la adresa \texttt{http://localhost:5000}.
+    *(Dacă fișierul principal poartă alt nume, de ex. \texttt{app.py}, se va rula \texttt{python app.py})*
+    Succesul acțiunii va fi semnalizat printr-un mesaj în consolă indicând faptul că serverul ascultă cereri la adresa \texttt{http://127.0.0.1:5000}.
 \end{enumerate}
 
-\subsection{Pași de Instalare Frontend}
+\textbf{Partea 2: Instalarea și pornirea aplicației Frontend}
+
 \begin{enumerate}
-    \item Navigați în folderul rădăcină al aplicației React Native.
-    \item Instalați dependențele npm:
+    \item \textbf{Navigarea în directoriul frontend:} Într-o nouă fereastră de terminal, navigați în dosarul aplicației mobile (dinamic):
+    \begin{verbatim}
+    cd StyleGenAI_Frontend/AplicatiaMeaDeStil
+    \end{verbatim}
+    
+    \item \textbf{Instalarea dependențelor Node.js:} Descărcați toate pachetele necesare interfeței introducând comanda:
     \begin{verbatim}
     npm install
     \end{verbatim}
-    \item Configurați adresa IP a serverului backend în \texttt{constants/config.ts} (înlocuiți \texttt{localhost} cu IP-ul mașinii dacă testați pe un telefon real):
-    \begin{verbatim}
-    export const API_BASE_URL = 'http://192.168.x.x:5000/api';
-    \end{verbatim}
-    \item Porniți serverul de dezvoltare Expo:
+    
+    \item \textbf{Configurarea conexiunii:} În mod prestabilit, aplicația mobilă încearcă să comunice cu serverul instalat local. Dacă doriți rularea aplicației pe telefon, va trebui să găsiți adresa IP a calculatorului din rețeaua locală și să actualizați variabila referitoare la server în fișierele de configurare (ex. \texttt{services/api.ts}).
+    
+    \item \textbf{Pornirea serviciului Expo:} Pentru a face interfața vizibilă dispozitivului mobil, rulați:
     \begin{verbatim}
     npx expo start
     \end{verbatim}
-    \item Scanați codul QR generat folosind aplicația Expo Go.
+    Această comandă va afișa pe ecran un cod QR.
+    
+    \item \textbf{Rularea pe dispozitiv:} Deschideți aplicația \textbf{Expo Go} pe telefon. Selectați opțiunea „Scan QR Code” (pentru Android) sau folosiți aplicația Cameră a telefonului (pentru iOS) și scanați codul afișat anterior pe ecranul PC-ului. Aplicația va fi descărcată și asamblată pe ecran, fiind gata de utilizare.
 \end{enumerate}
 
 \section{Manual de Utilizare}
 
-\subsection{Autentificare}
-La deschiderea aplicației, utilizatorul este întâmpinat de ecranul de Login.
+Scopul principal al acestui manual este de a ghida utilizatorul în realizarea cu succes a sarcinilor pe care și le propun folosind aplicația dezvoltată, excluzând aspectele tehnice din spatele funcționalităților.\footnote{Notă: Imaginile menționate în acest capitol sunt capturi ale ecranului, ilustrând interfața reală a sistemului.}
+
+\subsection{Autentificarea și Înregistrarea}
+
+La prima deschidere a aplicației pe telefon, ecranul principal prezintă interfața de autentificare (*Login*).
+
 \begin{itemize}
-    \item Dacă aveți deja cont, introduceți Email și Parolă și apăsați "Log In".
-    \item Dacă nu, apăsați pe "Sign Up" pentru a crea un cont nou.
+    \item \textbf{Conectare cont existent:} Dacă dețineți deja un cont, introduceți adresa de e-mail în câmpul superior, iar parola în cel inferior, după care apăsați butonul principal „Log In”. Sistemul va valida credențialele și vă va deschide ecranul principal (\textbf{Home}).
+    \item \textbf{Creare cont nou:} Dacă folosiți aplicația pentru prima dată, faceți clic pe butonul „Sign Up” aflat în partea de jos a ecranului. Veți fi redirecționat către un formular de înregistrare. Introduceți numele dumneavoastră, e-mailul dorit și alegeți o parolă. Odată trimis formularul apăsând noul buton „Register”, contul va fi creat și veți dobândi acces direct.
 \end{itemize}
 
-%\begin{figure}[h]
-%    \centering
-%    \includegraphics[width=0.4\textwidth]{imagini/screenshot_login.png}
-%    \caption{Ecranul de Autentificare}
-%\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\textwidth]{imagini/11_auth_login_screen}
+    \caption{Ecranul de autentificare (Login): Câmpuri email, parolă și butoane Log In / Sign Up}
+    \label{fig:auth_login}
+\end{figure}
 
-\subsection{Generarea unei Ținute}
-1. Accesați tab-ul \textbf{Explore} din meniul de jos.
-2. Selectați **Ocazia** dorită (ex: Casual, Business, Sport).
-3. (Opțional) Încărcați o fotografie cu un articol vestimentar pe care doriți să îl asortați.
-4. Apăsați butonul **"Generate Outfit"**.
-5. Așteptați câteva secunde procesarea AI. Rezultatul va fi afișat sub forma unei liste de articole recomandate.
+\noindent \textit{(PROMPT SCREENSHOT: Ecran mobil Portrait 16:9 cu logo StyleGenAI sus, zwei input fields (email icon, password icon), Log In button (albastru), Sign Up link (text subliniat). Background: gradient subtle. Stil: Modern mobile UI, iOS/Android clean design)}\par
 
-%\begin{figure}[h]
-%    \centering
-%    \includegraphics[width=0.4\textwidth]{imagini/screenshot_generate.png}
-%    \caption{Fluxul de generare a ținutei}
-%\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\textwidth]{imagini/12_auth_signup_screen}
+    \caption{Ecranul de înregistrare (Sign Up): Formular cu email, parolă și confirmă parolă}
+    \label{fig:auth_signup}
+\end{figure}
 
-\subsection{Vizualizare Istoric}
-Toate ținutele generate sunt salvate automat. Le puteți accesa în tab-ul \textbf{History}. Aici puteți revedea detaliile fiecărei sugestii.
+\noindent \textit{(PROMPT SCREENSHOT: Ecran mobil Portrait cu 3 input fields (Name, Email, Password, Confirm Password), Register button (verde), Back to Login link. Validare labels sub fiecare field. Stil: Same clean design ca Login)}\par
 
-\subsection{Profil Utilizator}
-În tab-ul \textbf{Profile}, puteți vizualiza informațiile contului sau vă puteți deloga apăsând butonul "Log Out".
+\subsection{Navigarea în Pagina Principală (Home)}
+
+După o conectare reușită, veți fi întâmpinat de fereastra principală care conține o bară de navigare inferioară. Bara inferioară prezintă iconițe specifice ce direcționează către ecranele esențiale:
+\begin{enumerate}
+    \item \textbf{Profil/Home:} Aici sunt salutate preferințele personale și unde vă puteți modifica detaliile contului.
+    \item \textbf{Generează Ținută:} Nucleul aplicației, destinat cererilor de recomandări vestimentare.
+    \item \textbf{Istoric (History):} Aici pot fi trecute în revistă ținutele generate anterior în contul dumneavoastră.
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\textwidth]{imagini/13_home_screen_tabs}
+    \caption{Ecranul principal (Home) cu bara de navigare inferioară: Profile, Generate, History}
+    \label{fig:home_tabs}
+\end{figure}
+
+\noindent \textit{(PROMPT SCREENSHOT: Ecran mobil Portrait cu bottom tab bar (3 icons: person icon active, lightning icon, history icon). Main content: User greeting "Welcome, [Name]!", edit profile button, recent stats (outfits generated, favorites). Stil: Material Design 3 bottom navigation)}\par
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\textwidth]{imagini/14_profile_screen_user_details}
+    \caption{Ecranul de profil (Profile): Informații utilizator, preferințe și buton Sign Out}
+    \label{fig:profile_screen}
+\end{figure}
+
+\noindent \textit{(PROMPT SCREENSHOT: Profile screen cu avatar, username, email, favorite style (dropdown), preferred occasions (checkboxes: Casual, Formal, Sport, Evening). Edit button, Sign Out button (red). Background: subtle avatar with user initial)}\par
+
+\subsection{Procesul de Generare a unei Ținute}
+
+Pentru a primi asistență cu alegerea unei vestimentații, asigurați-vă că navigați către tab-ul aferent generării (marcat cu simbolul specific în partea de jos).
+
+\begin{enumerate}
+    \item Pe acest ecran, vi se va pune la dispoziție o interfață cu un scrolator ce afișează diverse ocazii sau profiluri de ieșire (de ex. *Casual, Sport, Eveniment Formal*). Selectați opțiunea care descrie cel mai bine destinația dumneavoastră.
+    \item Pe lângă ocazie, sistemul vă permite să adăugați condițiile meteo sau stilul dorit prin glisante și câmpuri de text. Definiți acești parametri pe placul dumneavoastră.
+    \item O funcție suplimentară foarte importantă este posibilitatea de a încărca o fotografie. Dacă dețineți un anumit articol pe care vreți obligatoriu să îl purtați (exemplu: o geacă roșie din piele), atingeți butonul cu icoană de aparat foto. Selectați o fotografie clară din galeria telefonului dumneavoastră.
+    \item După ce ați furnizat toate condițiile, apăsați pe butonul principal \textbf{„Generate Outfit”} (Creează ținută). 
+    \item În acest punct veți vedea un semnal de încărcare animat. Pe fundal, se procesează caracteristicile selectate. Vă rugăm să așteptați câteva momente.
+    \item Imediat ce rezultatul este gata, ecranul își schimbă conținutul, rezultând o vizualizare clară cu propunerile recomandate. Rezultatul va afișa numele articolelor (bluză, pantofi, pantaloni), paleta de culori aleasă și un sfat legat de accesorii.
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\textwidth]{imagini/15_generate_input_parameters}
+    \caption{Ecranul de setare parametri pentru generare: Ocazie, stil, upload fotografie}
+    \label{fig:generate_input}
+\end{figure}
+
+\noindent \textit{(PROMPT SCREENSHOT: Portrait screen cu titlu "Generate Outfit", Occasion dropdown (selected "Casual"), Style checkboxes (Modern, Classic, Sporty), Weather slider (Cold-Warm), Upload Photo button (cu aparat foto icon), Generate Outfit button (prominent blue). Loading animation area below placeholder)}\par
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\textwidth]{imagini/16_generate_result_outfit_card}
+    \caption{Ecranul rezultat: Ținuta generată cu componente (Top, Bottom, Shoe) și scor compatibilitate}
+    \label{fig:generate_result}
+\end{figure}
+
+\noindent \textit{(PROMPT SCREENSHOT: Portrait screen după generare cu: Outfit card mare (3 imagini articole side-by-side: bluză, pantaloni, pantofi), Compatibility Score 8.7/10 (cu progress bar), Color Palette (3 culori pătrate), Like button (heart icon), Regenerate button, Save to History button. Details below cu description)}\par
+
+\subsection{Revizuirea Ținutelor din Istoric}
+
+În cazul în care doriți să vă inspirați din creațiile sugerate într-o altă zi, navigați direct către fereastra „Istoric” (accesibilă din bara de navigație inferioară).
+Acolo veți descoperi o listă temporală cu toate ținutele descărcate și acceptate, care vă va permite o parcurgere rapidă și revizuirea detaliilor apasand direct pe caseta unei intrari anume.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\textwidth]{imagini/17_history_screen_list}
+    \caption{Ecranul de istoric (History): Listă cu ținutele anterior generate și salvate}
+    \label{fig:history_list}
+\end{figure}
+
+\noindent \textit{(PROMPT SCREENSHOT: Portrait screen cu titlu "Your Outfits History", vertical scrollable list cu outfit cards (fiecare card: 3 thumbnail images, date, score, like button). Cards au subtle shadows, colori pastel. Search bar sus. Filter options (by date, by score, by occasion)}\par
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\textwidth]{imagini/18_outfit_detail_screen}
+    \caption{Detalii ținută: Vizualizare completă cu componente, scor și metadata}
+    \label{fig:outfit_detail}
+\end{figure}
+
+\noindent \textit{(PROMPT SCREENSHOT: Portrait screen cu outfit mare (3 imagini full-size stacked vertical), Titlu outfit, Occasion tag, Score cu detalii (Compatibility 8.7/10, Color Harmony, Trend Boost +15%), Recomandări de accesorii, Download button, Share button, Delete button)}\par
+
+\subsection{Delogare și Securitate}
+
+Pentru a încheia sesiunea și a proteja informațiilor prelucrate, din ecranul \textbf{Profil}, glisați vizualul spre inferior unde veți descoperi butonul de finalizare proceduri (\textbf{Sign Out} sau \textbf{Log Out}). La atingerea acestuia sunteți delogat în deplină siguranță și întors pe ecranul inițial descris în etapa de autentificare.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\textwidth]{imagini/19_security_logout_confirmation}
+    \caption{Dialog de confirmare delogare: Logout confirmation cu opțiuni Confirm/Cancel}
+    \label{fig:logout_dialog}
+\end{figure}
+
+\noindent \textit{(PROMPT SCREENSHOT: Modal dialog Portrait cu titlu "Sign Out?", mesaj "Are you sure you want to sign out? Your saved outfits will be preserved.", Cancel button (gri), Confirm button (roșu). Background blur pe screen în spate)}\par
+
+\section{Troubleshooting și Suport Utilizator}
+
+\subsection{Probleme Frecvente}
+
+\begin{enumerate}
+    \item \textbf{Eroare: "Connection Refused" la conectare}: Verificați ca serverul Flask să fie rulând (portul 5000 activ). Dacă folosiți pe telefon, asigurați-vă că ambele dispozitive sunt pe aceeași rețea Wi-Fi și IP-ul serverului este corect în configurare.
+    
+    \item \textbf{Imagine nu se încarcă}: Asigurați-vă că fotografia este în format JPG/PNG și sub 5MB. Dacă persista problema, relansați aplicația.
+    
+    \item \textbf{Generare foarte lentă (>2 secunde)}: Acesta e normal dacă serverul are 100+ articole în bază. Puteți activa caching din setări pentru optimizare.
+    
+    \item \textbf{Pierdere credențiale}: Parolele sunt stocate criptat cu bcrypt. Nu le putem recupera. Folosiți "Forgot Password" link pentru reset (dacă implementat).
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\textwidth]{imagini/20_error_messages_guide}
+    \caption{Ghid mesaje de eroare: Exemple de error states și cum să le rezolvi}
+    \label{fig:error_guide}
+\end{figure}
+
+\noindent \textit{(PROMPT SCREENSHOT: 3-box layout pe Portrait cu 3 error scenarios: 1) "Connection Failed" cu iconiță reț, 2) "Upload Failed" cu iconiță imagine, 3) "Generation Error" cu iconiță gear. Fiecare cu mesaj, suggested action, retry button. Culori: red warning tones, helpful tone)}\par

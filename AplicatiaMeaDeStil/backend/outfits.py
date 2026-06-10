@@ -2,8 +2,17 @@
 Outfits module - handles saving, retrieving, and managing user outfits
 """
 import json
+import os
 from datetime import datetime
 from database import execute_query, execute_query_one
+
+
+def _to_iso(value):
+    if value is None:
+        return None
+    if hasattr(value, 'isoformat'):
+        return value.isoformat()
+    return str(value)
 
 
 def save_outfit(user_id: int, image_url: str, style_data: dict) -> dict:
@@ -24,19 +33,31 @@ def save_outfit(user_id: int, image_url: str, style_data: dict) -> dict:
     
     style_json = json.dumps(style_data)
     
-    query = """
-        INSERT INTO outfits (user_id, image_url, style_data, liked)
-        OUTPUT INSERTED.id, INSERTED.created_at
-        VALUES (?, ?, ?, 0)
-    """
+    db_type = os.getenv('DB_TYPE', 'mssql').lower()
+    if db_type == 'sqlite':
+        query = """
+            INSERT INTO outfits (user_id, image_url, style_data, liked)
+            VALUES (?, ?, ?, 0)
+        """
+    else:
+        query = """
+            INSERT INTO outfits (user_id, image_url, style_data, liked)
+            OUTPUT INSERTED.id, INSERTED.created_at
+            VALUES (?, ?, ?, 0)
+        """
     
     try:
-        print(f"[outfits.save_outfit] Executing INSERT query...")
-        result = execute_query_one(query, (user_id, image_url, style_json))
+        print("[outfits.save_outfit] Executing INSERT query...")
+        if db_type == 'sqlite':
+            execute_query(query, (user_id, image_url, style_json))
+            result = execute_query_one("SELECT id, created_at FROM outfits WHERE rowid = last_insert_rowid()")
+        else:
+            result = execute_query_one(query, (user_id, image_url, style_json))
+
         print(f"[outfits.save_outfit] INSERT result: {result}")
-        
-        outfit_id = result[0]
-        created_at = result[1]
+
+        outfit_id = result[0] if result else None
+        created_at = result[1] if result else None
         
         print(f"[outfits.save_outfit] Outfit saved successfully - ID: {outfit_id}")
         
@@ -49,12 +70,12 @@ def save_outfit(user_id: int, image_url: str, style_data: dict) -> dict:
                 'image_url': image_url,
                 'style_data': style_data,
                 'liked': False,
-                'created_at': created_at.isoformat() if created_at else None
+                'created_at': _to_iso(created_at)
             }
         }
     except Exception as e:
         print(f"[outfits.save_outfit] ERROR: {str(e)}")
-        raise Exception(f"Failed to save outfit: {str(e)}")
+        raise RuntimeError(f"Failed to save outfit: {str(e)}")
 
 
 def get_user_outfits(user_id: int, liked_only: bool = False) -> list:
@@ -95,12 +116,12 @@ def get_user_outfits(user_id: int, liked_only: bool = False) -> list:
                 'image_url': row[2],
                 'style_data': style_data,
                 'liked': bool(row[4]),
-                'created_at': row[5].isoformat() if row[5] else None
+                'created_at': _to_iso(row[5])
             })
         
         return outfits
     except Exception as e:
-        raise Exception(f"Failed to retrieve outfits: {str(e)}")
+        raise RuntimeError(f"Failed to retrieve outfits: {str(e)}")
 
 
 def toggle_outfit_like(outfit_id: int, user_id: int) -> dict:
@@ -119,7 +140,7 @@ def toggle_outfit_like(outfit_id: int, user_id: int) -> dict:
     outfit = execute_query_one(verify_query, (outfit_id, user_id))
     
     if not outfit:
-        raise Exception("Outfit not found or unauthorized")
+        raise PermissionError("Outfit not found or unauthorized")
     
     current_liked = outfit[0]
     new_liked = 0 if current_liked else 1
@@ -151,7 +172,7 @@ def delete_outfit(outfit_id: int, user_id: int) -> dict:
     outfit = execute_query_one(verify_query, (outfit_id, user_id))
     
     if not outfit:
-        raise Exception("Outfit not found or unauthorized")
+        raise PermissionError("Outfit not found or unauthorized")
     
     # Delete outfit
     delete_query = "DELETE FROM outfits WHERE id = ?"
@@ -183,7 +204,7 @@ def get_outfit_by_id(outfit_id: int, user_id: int) -> dict:
     result = execute_query_one(query, (outfit_id, user_id))
     
     if not result:
-        raise Exception("Outfit not found")
+        raise LookupError("Outfit not found")
     
     style_data = json.loads(result[3]) if result[3] else {}
     
@@ -193,5 +214,5 @@ def get_outfit_by_id(outfit_id: int, user_id: int) -> dict:
         'image_url': result[2],
         'style_data': style_data,
         'liked': bool(result[4]),
-        'created_at': result[5].isoformat() if result[5] else None
+        'created_at': _to_iso(result[5])
     }

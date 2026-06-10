@@ -23,10 +23,10 @@ def compose_on_mannequin(
     top_bytes: Optional[bytes],
     bottom_bytes: Optional[bytes],
     shoes_bytes: Optional[bytes],
-    mannequin_kind: str = "male",
-    silhouette: str = "mediu",
-    feather: int = 2,
-    cleanup: bool = True,
+    _mannequin_kind: str = "male",
+    _silhouette: str = "mediu",
+    _feather: int = 2,
+    _cleanup: bool = True,
 ) -> bytes:
     """Very simple 2D overlay composition."""
     canvas = template.copy()

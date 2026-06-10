@@ -8,9 +8,17 @@ import secrets
 import string
 from functools import wraps
 from flask import request, jsonify
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
 from database import execute_query, execute_query_one
+
+
+def _to_iso(value):
+    if value is None:
+        return None
+    if hasattr(value, 'isoformat'):
+        return value.isoformat()
+    return str(value)
 
 load_dotenv()
 
@@ -27,10 +35,10 @@ def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         token = None
-        if 'Authorization' in request.headers:
-            auth_header = request.headers['Authorization']
-            if auth_header and auth_header.startswith("Bearer "):
-                token = auth_header.split(" ")[1]
+        auth_header = request.headers.get('Authorization')
+        if auth_header:
+            if auth_header.startswith("Bearer "):
+                token = auth_header.split(" ", 1)[1]
             else:
                 token = auth_header
 
@@ -66,8 +74,8 @@ def create_jwt_token(user_id: int, email: str, role: str = 'user') -> str:
         'user_id': user_id,
         'email': email,
         'role': role,
-        'exp': datetime.utcnow() + timedelta(hours=JWT_EXPIRATION_HOURS),
-        'iat': datetime.utcnow()
+        'exp': datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRATION_HOURS),
+        'iat': datetime.now(timezone.utc)
     }
     token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
     return token
@@ -87,9 +95,9 @@ def verify_jwt_token(token: str) -> dict:
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
         return payload
     except jwt.ExpiredSignatureError:
-        raise Exception("Token has expired")
+        raise ValueError("Token has expired")
     except jwt.InvalidTokenError:
-        raise Exception("Invalid token")
+        raise ValueError("Invalid token")
 
 
 def register_user(email: str, password: str) -> dict:
@@ -111,7 +119,7 @@ def register_user(email: str, password: str) -> dict:
     existing_user = execute_query_one(query, (email,))
     
     if existing_user:
-        raise Exception("Email already registered")
+        raise ValueError("Email already registered")
     
     # Hash password
     password_hash = hash_password(password)
@@ -119,8 +127,6 @@ def register_user(email: str, password: str) -> dict:
     # Check if this is the first user (becomes admin)
     count_query = "SELECT COUNT(*) FROM users"
     user_count_result = execute_query_one(count_query)
-    user_count = user_count_result[0] if user_count_result else 0
-    
     # First user becomes admin, others are regular users
     if user_count_result and len(user_count_result) > 0 and user_count_result[0] > 0:
         role = 'user'
@@ -161,7 +167,7 @@ def register_user(email: str, password: str) -> dict:
                 'token': token
             }
         except Exception as e:
-            raise Exception(f"Registration failed: {str(e)}")
+            raise RuntimeError(f"Registration failed: {str(e)}")
             
     else:
         # SQL Server Query - Use OUTPUT clause
@@ -193,7 +199,7 @@ def register_user(email: str, password: str) -> dict:
                 'token': token
             }
         except Exception as e:
-            raise Exception(f"Registration failed: {str(e)}")
+            raise RuntimeError(f"Registration failed: {str(e)}")
 
 def login_user(email: str, password: str) -> dict:
     """
@@ -216,7 +222,7 @@ def login_user(email: str, password: str) -> dict:
     
     if not user:
         print(f"[auth.login_user] User not found: {email}")
-        raise Exception("Invalid email or password")
+        raise ValueError("Invalid email or password")
     
     user_id, user_email, password_hash, user_role, created_at = user
     print(f"[auth.login_user] User found - ID: {user_id}, Role: {user_role}")
@@ -225,7 +231,7 @@ def login_user(email: str, password: str) -> dict:
     print("[auth.login_user] Verifying password...")
     if not verify_password(password, password_hash):
         print("[auth.login_user] Password verification failed")
-        raise Exception("Invalid email or password")
+        raise ValueError("Invalid email or password")
     
     print("[auth.login_user] Password verified, creating token...")
     # Create JWT token with role
@@ -264,13 +270,13 @@ def get_current_user(token: str) -> dict:
     user = execute_query_one(query, (user_id,))
     
     if not user:
-        raise Exception("User not found")
+        raise LookupError("User not found")
     
     return {
         'id': user[0],
         'email': user[1],
         'role': user[2],
-        'created_at': user[3].isoformat() if user[3] else None
+        'created_at': _to_iso(user[3])
     }
 
 
@@ -305,7 +311,7 @@ def require_admin(token: str) -> dict:
         Exception: If user is not admin or token is invalid
     """
     if not is_admin(token):
-        raise Exception("Admin access required")
+        raise PermissionError("Admin access required")
     
     return get_current_user(token)
 
@@ -346,7 +352,7 @@ def reset_user_password(email: str) -> dict:
     
     if not user:
         print(f"[auth.reset_user_password] User not found: {email}")
-        raise Exception("User not found")
+        raise LookupError("User not found")
     
     user_id, user_email = user
     print(f"[auth.reset_user_password] User found - ID: {user_id}")

@@ -1,59 +1,130 @@
 \chapter{Obiectivele Proiectului}
+\label{cap:obiective}
 
-\section{Definirea problemei}
-În contextul actual, gestionarea garderobei personale devine o provocare logistică și estetică. Utilizatorii acumulează un număr mare de articole vestimentare, dar folosesc activ doar un procent redus din acestea. Problema centrală abordată de acest proiect este \textbf{optimizarea utilizării garderobei personale} prin intermediul tehnologiei, oferind asistență în crearea de combinații stilistice coerente.
+\section{Scopul Proiectului}
 
-Proiectul își propune să răspundă la întrebarea: \textit{„Cum putem utiliza inteligența artificială și procesarea de imagine pentru a oferi un stilist personal digital, accesibil direct de pe telefonul mobil?”}
+Problema centrală abordată de acest proiect este dificultatea utilizatorilor de a alege ținute vestimentare coerente din propria garderobă. Acest proces generează adesea indecizie și consumă timp, o problemă cunoscută în literatură sub denumirea de "decision fatigue" \cite{fashion_ai_review}.
 
-\section{Obiectivele generale}
-Scopul principal este dezvoltarea unei aplicații mobile integrate (Frontend + Backend) care să funcționeze ca un asistent vestimentar inteligent. Aplicația trebuie să fie capabilă să:
-\begin{enumerate}
-    \item \textbf{Digitalizeze garderoba}: Utilizatorul își poate încărca hainele prin fotografii.
-    \item \textbf{Proceseze imaginile}: Eliminarea automată a fundalului pentru o vizualizare clară.
-    \item \textbf{Genereze sugestii}: Crearea de ținute (Outfit-uri) bazate pe reguli de stil și preferințe.
-    \item \textbf{Învețe din interacțiuni}: Adaptarea sugestiilor pe baza feedback-ului (Like/Dislike).
-\end{enumerate}
+Scopul principal al lucrării este, prin urmare, proiectarea și dezvoltarea unei aplicații mobile complete (frontend și backend) care funcționează ca un asistent stilistic personal. Aplicația urmărește să optimizeze utilizarea garderobei personale prin tehnologie, răspunzând la întrebarea: \textit{„Cum putem folosi inteligența artificială pentru a oferi un stilist digital, accesibil direct de pe telefonul mobil?”}
 
-\section{Obiectivele specifice și funcționalități}
+Sistemul trebuie să fie capabil să digitalizeze garderoba utilizatorului prin fotografii, să proceseze automat imaginile pentru a extrage informații relevante (culori, categorii) și să genereze recomandări de ținute bazate pe reguli de compatibilitate stilistică și cromatică \cite{mcauley2015image}.
 
-\subsection{Modulul de Administrare a Garderobei}
+\begin{figure}[h]
+   \centering
+   \includegraphics[width=\textwidth]{imagini/flow_conceptual.png}
+   \caption{Fluxul conceptual de la încărcarea articolului la generarea ținutei.}
+   \label{fig:diagrama_conceptuala}
+\end{figure}
+% (PROMPT DIAGRAMĂ: Creează o diagramă de flux (flowchart) care ilustrează călătoria utilizatorului în aplicația StyleGenAI. Diagrama trebuie să aibă 4 etape principale, aranjate orizontal: 1. Digitalizare Garderobă (Utilizatorul încarcă fotografia și alege manual categoria). 2. Procesare Inteligentă (Backend-ul elimină fundalul cu U²-Net și extrage culoarea cu K-Means). 3. Motor de Recomandare (Sistemul generează combinații și le scorează pe baza compatibilității cromatice și a trendurilor). 4. Afișare Rezultat (Aplicația afișează utilizatorului ținuta cu scorul cel mai mare). Stil: curat, modern, cu iconițe sugestive pentru fiecare etapă.)
+
+\section{Obiective Specifice}
+
+Pentru a atinge scopul propus, au fost definite următoarele obiective specifice, structurate pe module funcționale.
+
+\subsection{Obiective Funcționale}
+
 \begin{itemize}
-    \item \textbf{Încărcare Foto}: Utilizarea camerei sau a galeriei pentru a adăuga articole.
-    \item \textbf{Procesare Automată}: Integrarea bibliotecii \texttt{rembg} pentru a decupa haina din imagine.
-    \item \textbf{Categorisire}: Clasificarea automată sau manuală a hainelor (Top, Bottom, Footwear).
+    \item \textbf{Digitalizarea Garderobei:}
+        \begin{itemize}
+            \item Permitarea încărcării articolelor vestimentare prin camera foto sau din galeria telefonului.
+            \item Asigurarea unui mecanism de clasificare a articolelor pe categorii predefinite (ex: Top, Bottom, Footwear). Ca decizie strategică pentru stadiul de MVP (Minimum Viable Product), s-a optat pentru o clasificare \textbf{manuală}, realizată de utilizator. Această abordare garantează o acuratețe de 100\% a datelor de intrare, eliminând riscul ca erorile unui clasificator automat să afecteze calitatea recomandărilor. Implementarea unui clasificator automat este considerată o direcție de dezvoltare viitoare.
+        \end{itemize}
+    
+    \item \textbf{Procesarea Imaginilor:}
+        \begin{itemize}
+            \item Implementarea unui modul pentru extragerea automată a culorii dominante din imaginea unui articol.
+            \item Integrarea unei soluții pentru eliminarea fundalului din fotografii, folosind biblioteci specializate precum \texttt{rembg}, care se bazează pe arhitecturi de segmentare (ex: U²-Net) \cite{rembg_repo}.
+        \end{itemize}
+
+    \item \textbf{Motorul de Recomandare (Styling Engine):}
+        \begin{itemize}
+            \item Dezvoltarea unui algoritm de generare a ținutelor care combină articole din categorii compatibile.
+            \item Implementarea unei funcții de scor care evaluează compatibilitatea cromatică a unei ținute, bazată pe principii din teoria culorilor (ex: armonie, contrast) \cite{color_theory_design}.
+            \item Integrarea unui modul inteligent bazat pe reguli care prioritizează ținutele ce conțin articole aliniate cu tendințele modei actuale.
+        \end{itemize}
+
+    \item \textbf{Interfața Utilizator:}
+        \begin{itemize}
+            \item Crearea unei interfețe grafice intuitive, cu o navigație fluidă între ecranele principale (garderobă, generare ținută, istoric).
+            \item Oferirea posibilității de a salva ținutele favorite și de a gestiona articolele din garderoba digitală.
+        \end{itemize}
 \end{itemize}
 
-\subsection{Asistentul de Stil (Styling Engine)}
+\subsection{Obiective Non-Funcționale}
+
+Obiectivele non-funcționale definesc atributele de calitate ale sistemului și constrângerile sub care acesta trebuie să opereze \cite{software_engineering_sommerville}.
+
 \begin{itemize}
-    \item \textbf{Algoritm de Compatibilitate}: Implementarea unui set de reguli cromatice (ex: culori complementare, monocromatice).
-    \item \textbf{Style Classifier}: Utilizarea unui model AI simplificat pentru a eticheta stilul (Casual, Sport, Formal).
-    \item \textbf{Generatorul de Ținute}: Algoritm care selectează aleatoriu sau euristic câte un articol din fiecare categorie esențială pentru a forma o ținută validă.
+    \item \textbf{Performanță:} Timpul de răspuns pentru generarea unei recomandări, de la cererea HTTP până la primirea răspunsului pe client, trebuie să fie sub 500 de milisecunde în condiții de rețea optime.
+    \item \textbf{Acuratețe:} Corelația dintre scorul generat de algoritm și evaluările umane (măsurată prin coeficientul Pearson) trebuie să fie de cel puțin $r = 0.75$, demonstrând relevanța modelului euristic.
+    \item \textbf{Scalabilitate:} Pentru stadiul de MVP, arhitectura bazată pe Flask și SQLite trebuie să poată gestiona eficient testarea cu un grup de până la 50 de utilizatori. Arhitectura este proiectată modular pentru a permite în viitor migrarea către un sistem de baze de date robust (ex: PostgreSQL), capabil să susțină un număr mare de utilizatori concurenți.
+    \item \textbf{Securitate:} Sistemul de autentificare trebuie să fie securizat folosind standarde moderne (ex: JWT), iar comunicarea între client și server trebuie criptată prin HTTPS.
 \end{itemize}
 
-\subsection{Interfața Utilizator (UX/UI)}
+\section{Rezultate Așteptate și Indicatori de Performanță}
+
+Succesul proiectului este măsurat prin atingerea unor indicatori de performanță (KPIs) clari, care reflectă atât calitatea tehnică a implementării, cât și impactul asupra utilizatorului final.
+
 \begin{itemize}
-    \item \textbf{Design Intuitiv}: Navigație fluidă prin tab-uri (Explore, Wardrobe, Profile).
-    \item \textbf{Interactivitate}: Posibilitatea de a salva ținutele favorite și de a șterge articolele nedorite.
+    \item \textbf{Eficiență crescută pentru utilizator:} Aplicația va reduce timpul petrecut de utilizator pentru a alege o ținută.
+    \item \textbf{Utilizare optimizată a garderobei:} Utilizatorii vor descoperi noi moduri de a combina articolele pe care le dețin deja.
+    \item \textbf{Creșterea încrederii stilistice:} Recomandările validate pe baza unor reguli clare vor ajuta utilizatorii să se simtă mai încrezători în alegerile lor vestimentare.
+    \item \textbf{Experiență de utilizare pozitivă:} O interfață intuitivă și un timp de răspuns rapid vor contribui la o satisfacție ridicată a utilizatorilor, măsurată printr-un scor Net Promoter Score (NPS) țintă de peste 50.
 \end{itemize}
 
-\subsection{Componenta Comercială (Sponsorizări)}
+Tabelul de mai jos centralizează principalii indicatori de performanță ai proiectului.
+
+\begin{table}[h]
+    \centering
+    \begin{tabular}{|l|c|c|}
+    \hline
+    \textbf{Metrica} & \textbf{Țintă} & \textbf{Metodă de Măsurare} \\ \hline
+    Timp Răspuns API (Generare) & < 500 ms & Testare de performanță (Postman/JMeter) \\ \hline
+    Timp Procesare Imagine & < 2 sec & Benchmark pe server \\ \hline
+    Acuratețe Extragere Culoare & > 90\% & Validare pe set de test etichetat \\ \hline
+    Corelație Scor vs. Uman & $r \geq 0.75$ & Coeficientul Pearson (UAT) \\ \hline
+    Satisfacție Utilizator (UAT) & NPS $\geq 50$ & Formular de feedback (scala 1-10) \\ \hline
+    Rata de Erori API & < 1\% & Monitorizare log-uri server \\ \hline
+    \end{tabular}
+    \caption{Indicatori de Performanță (KPIs) pentru StyleGenAI.}
+    \label{tab:kpis}
+\end{table}
+
+\section{Prioritizarea Obiectivelor (MoSCoW)}
+
+Pentru a asigura o dezvoltare iterativă și livrarea unui produs funcțional într-un timp rezonabil, obiectivele au fost prioritizate folosind metoda MoSCoW. Aceasta clasifică funcționalitățile în patru categorii, de la cele esențiale la cele excluse explicit din scopul acestui proiect.
+
+\subsubsection{Must Have (Esential)}
+Funcționalitățile din această categorie sunt non-negociabile și reprezintă nucleul aplicației. Fără ele, produsul nu își poate îndeplini scopul principal.
 \begin{itemize}
-    \item \textbf{Sugestii Contextuale}: Posibilitatea de a insera în fluxul de sugestii articole de la parteneri, marcate ca „Sponsored” sau „Completează ținuta”.
+    \item \textbf{Autentificare și cont utilizator:} Sistemul trebuie să permită crearea unui cont și autentificarea pentru a asigura persistența datelor fiecărui utilizator.
+    \item \textbf{Încărcare articole vestimentare:} Utilizatorul trebuie să poată adăuga articole în garderoba sa digitală.
+    \item \textbf{Generare ținute:} Aceasta este funcționalitatea de bază, motorul care combină articolele și oferă recomandări.
+    \item \textbf{Salvare istoric ținute:} Utilizatorul trebuie să poată salva combinațiile preferate pentru a le consulta ulterior.
 \end{itemize}
 
-\section{Diagrama conceptuală a soluției}
-(Aici este locul rezervat pentru inserarea figurii care arată fluxul de date: Utilizator $\rightarrow$ Poză $\rightarrow$ Server (Procesare) $\rightarrow$ Bază de Date $\rightarrow$ Algoritm Recomandare $\rightarrow$ Interfață)
-
-%\begin{figure}[h]
-%    \centering
-%    \includegraphics[width=0.8\textwidth]{diagrama_conceptuala}
-%    \caption{Fluxul conceptual al aplicației StyleGenAI}
-%    \label{fig:diagrama_conceptuala}
-%\end{figure}
-
-\section{Constrângeri și Provocări}
+\subsubsection{Should Have (Important)}
+Aceste funcționalități aduc o valoare semnificativă și diferențiază produsul, dar nu sunt strict necesare pentru ca aplicația să funcționeze.
 \begin{itemize}
-    \item \textbf{Calitatea imaginilor}: Sistemul trebuie să funcționeze rezonabil chiar și cu poze realizate în condiții de iluminare slabă.
-    \item \textbf{Timpul de răspuns}: Procesarea imaginii și generarea sugestiei trebuie să se întâmple în câteva secunde pentru a nu plictisi utilizatorul.
-    \item \textbf{Diversitatea vestimentară}: Algoritmul trebuie să fie suficient de flexibil pentru a gestiona stiluri variate, inițial concentrându-se pe moda masculină.
+    \item \textbf{Eliminare automată fundal:} Îmbunătățește calitatea vizuală a garderobei digitale și acuratețea extragerii culorilor, oferind o experiență superioară.
+    \item \textbf{Integrare semnal de trend:} Crește relevanța recomandărilor prin alinierea la tendințele curente, făcând aplicația mai utilă în contextul modei actuale.
 \end{itemize}
+
+\subsubsection{Could Have (Opțional)}
+Funcționalități dezirabile, care ar îmbunătăți experiența de utilizare, dar care au un impact mai redus sau necesită un efort de implementare mai mare. Acestea sunt lăsate pentru versiuni viitoare.
+\begin{itemize}
+    \item \textbf{Export ținută (PDF/Share):} Ar permite utilizatorului să partajeze ușor ținutele generate.
+    \item \textbf{Notificări push:} Ar putea fi folosite pentru a sugera proactiv ținute zilnice.
+    \item \textbf{Căutare avansată în garderobă:} Filtrarea articolelor după culoare, stil sau alte atribute.
+\end{itemize}
+
+\subsubsection{Won't Have (Exclus)}
+Aceste funcționalități au fost excluse în mod conștient din scopul versiunii curente a proiectului (MVP) pentru a menține complexitatea la un nivel gestionabil. Ele reprezintă direcții majore de dezvoltare viitoare.
+\begin{itemize}
+    \item \textbf{Clasificare automată articole:} Deși valoroasă, implementarea unui clasificator de imagini precis necesită un efort considerabil de antrenare și validare.
+    \item \textbf{Probă virtuală (AR):} Integrarea cu tehnologii de Augmented Reality este foarte complexă și depășește cadrul unei lucrări de licență axate pe motorul de recomandare.
+    \item \textbf{Integrare e-commerce:} Conectarea cu magazine online pentru a sugera produse noi este o direcție de monetizare, dar nu face parte din scopul tehnic inițial.
+\end{itemize}
+
+
+

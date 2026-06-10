@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from '@/constants/config';
 
@@ -25,7 +25,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const TOKEN_KEY = 'auth_token';
 const USER_KEY = 'auth_user';
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+type AuthProviderProps = Readonly<{ children: ReactNode }>;
+
+export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -46,11 +48,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log('[AuthContext] Stored token exists:', !!storedToken);
       console.log('[AuthContext] Stored user exists:', !!storedUser);
 
-      if (storedToken && storedUser) {
-        const parsedUser = JSON.parse(storedUser);
-        console.log('[AuthContext] Restoring session for user:', parsedUser.email);
-        setToken(storedToken);
-        setUser(parsedUser);
+      if (storedToken) {
+        // Verify token with backend
+        try {
+          console.log('[AuthContext] Verifying token with backend...');
+          const verifyResponse = await fetch(`${API_BASE_URL}/auth/me`, {
+            headers: {
+              'Authorization': `Bearer ${storedToken}`
+            }
+          });
+
+          if (verifyResponse.ok) {
+            const verifyData = await verifyResponse.json();
+            console.log('[AuthContext] Token verified based on response:', verifyData);
+            
+            // Backend might wrap user in { status: 'success', user: ... } based on typical API structure
+            // Or just return the user object directly. Let's handle both.
+            const validUser = verifyData.user || verifyData;
+            
+            setToken(storedToken);
+            setUser(validUser);
+             // Update stored user just in case it changed
+            await AsyncStorage.setItem(USER_KEY, JSON.stringify(validUser));
+          } else {
+            console.warn('[AuthContext] Token verification failed:', verifyResponse.status);
+            // Token invalid/expired - clear storage
+            await AsyncStorage.multiRemove([TOKEN_KEY, USER_KEY]);
+            setToken(null);
+            setUser(null);
+          }
+        } catch (verifyError) {
+          console.error('[AuthContext] Token verification error (network?):', verifyError);
+          // If network error, maybe keep the user logged in locally but mark as offline?
+          // For safety, let's keep the locally stored user if it exists, assuming offline mode,
+          // OR clear it if you want strict security.
+          // Let's assume strict security for now or fallback to stored user if provided.
+          if (storedUser) {
+             console.log('[AuthContext] Network error, falling back to stored user data (offline mode possible)');
+             setToken(storedToken);
+             setUser(JSON.parse(storedUser));
+          }
+        }
       } else {
         console.log('[AuthContext] No stored auth data found');
       }
@@ -145,7 +183,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const value = {
+  const value = useMemo(() => ({
     user,
     token,
     isAuthenticated: !!token && !!user,
@@ -154,7 +192,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     register,
     logout,
     loading,
-  };
+  }), [user, token, loading]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

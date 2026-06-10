@@ -1,0 +1,323 @@
+\appendix
+\chapter{Recomandări Diagrame și Prompt-uri pentru Vizualizări PhD-Level}
+\label{cap:diagrame_recomandari}
+
+Acest capitol furnizează recomandări detaliate și prompt-uri "PhD-level" pentru crearea/îmbunătățirea diagramelor din teză. Scopul este de a standardi calitatea vizualizărilor și de a îndruma procesul de generare a imaginilor profesionale.
+
+\section{1. Diagramă: Arhitectura Sistemului End-to-End}
+
+\textbf{Locație recomandată}: Capitolul 5 (Implementare), după "Schema Generală a Aplicației"
+
+\textbf{Tip}: Arhitectural diagram (block/flowchart)
+
+\textbf{Prompt detaliat pentru generare/descriere}:
+
+Creează o diagramă arquitecturală completă care arată fluxul datelor în StyleGenAI de la utilizator la recomandare finală. Include:
+
+- Stânga: Utilizatorul și dispozitivul mobil (smartphone cu React Native app)
+- Centru: Cloud/Backend cu trei trepte:
+  1. API Gateway (Flask router) care primește requesturi HTTP POST
+  2. Service Layer cu trei componente paralele:
+     - Image Processing Pipeline (rembg, color extraction)
+     - Recommendation Engine (outfit generation + scoring)
+     - Trend Analysis Service (trend color lookup)
+  3. Persistence Layer (SQLite database cu 4 tabele: Users, Clothes, Outfits, TrendColors)
+- Dreapta: Săgeți de response către frontend cu JSON payload (outfit recommendation + score)
+- Legenda: Colorează API Gateway cu verde, Services cu albastru, Database cu portocaliu
+- Adnotări pe fiecare arrow cu tipuri de date (JWT token, FormData, JSON)
+- Inclusivă: Security layer labeled "JWT Validation" între Gateway și Services
+
+\textbf{Instrumente sugerate}: Lucidchart, Diagram.io, TikZ (LaTeX native), Figma
+
+\textbf{Aspect critic}: Trebuie să fie evident că JWT validation este checkpoint central; Services sunt independent escalabile.
+
+---
+
+\section{2. Diagramă: Pipelineul de Procesare Imagine}
+
+\textbf{Locație recomandată}: Capitolul 5, Subsecția "Formalizare Matematică"
+
+\textbf{Tip}: Process flow diagram
+
+\textbf{Prompt detaliat}:
+
+Creează o diagramă care arată transformările imaginii de la raw input la output (detected color). Structura:
+
+1. Input: Raw photo (JPG, PNG) cu un articol vestimentar în fond neuniform
+2. Etapa 1 - Background Removal: Arată original vs. output al rembg (PNG transparent)
+3. Etapa 2 - RGB Extraction: Arată pixelii izolaților și histograma de frecvență RGB
+4. Etapa 3 - Color Quantization: Arată tranziția de la RGB continuu la paleta CSS3 discretă (show ~140 culori web standard)
+5. Etapa 4 - Euclidean Distance Calculation: Formule pe diagramă pentru d(c, p_i)
+6. Output: Culoare dominantă identificată și labeled cu hex code (e.g., #FF5733)
+
+Include în lateral micile diagrame 3D ale spațiului RGB cu distanțe highlight-te din culorile articolelor.
+
+---
+
+\section{3. Diagramă: State Machine - Generare Outfit}
+
+\textbf{Locație recomandată}: Capitolul 5, subsecția "Algoritm de Generare Ținutelor"
+
+\textbf{Tip}: State diagram / flowchart
+
+\textbf{Prompt detaliat}:
+
+Creează o diagramă care modelează algoritmul de generare a outfit-ului ca o mașină de stare. Secvența:
+
+1. START STATE: "Primire Request"
+2. Stare 2: "Load User Clothes din DB" (Query filtered by user_id)
+3. Stare 3: "Categorizare (Top/Bottom/Shoe)" - paralel proceseaza
+4. Stare 4: "Generate All Combinations (nested loops)" - show O(n^3) complexity
+5. Stare 5: "Calculare Scores" - paralel evaluează S(c_i, c_j) pentru fiecare combo
+6. Stare 6: "Aplicare Trend Boost" - conditional: dacă culoare in trendColors, add boost
+7. Stare 7: "Rank & Select Top-K" - sorteaza dupa score descending
+8. OUTPUT STATE: "Return Outfit + Score" (JSON response)
+
+Inclusiv: Decision nodes pentru validări (sunt clothes suficiente? are user favorite filters?); error states pentru edge cases (zero clothes, categorii necomplet).
+
+---
+
+\section{4. Diagramă: Baza de Date - ERD Detaliată (Entity-Relationship Diagram)}
+
+\textbf{Locație recomandată}: Capitolul 5, subsecția "Securitate și Baza de Date"
+
+\textbf{Tip}: ER diagram
+
+\textbf{Prompt detaliat}:
+
+Creează un ERD profesional care arată:
+
+Tabele (fiecare cu subset de coloane):
+- USERS (user_id PK, email UNIQUE, password_hash, created_at, updated_at)
+- CLOTHES (cloth_id PK, user_id FK->USERS, category ENUM, dominant_color VARCHAR, image_path, style, created_at)
+- OUTFITS (outfit_id PK, user_id FK->USERS, top_id FK->CLOTHES, bottom_id FK->CLOTHES, shoe_id FK->CLOTHES, compatibility_score DECIMAL, liked BOOLEAN, created_at)
+- TREND_COLORS (trend_id PK, rgb_value VARCHAR, season VARCHAR, year INT, popularity_score DECIMAL)
+
+Relații:
+- USERS --[1:N]--> CLOTHES (owneds)
+- USERS --[1:N]--> OUTFITS (generates)
+- CLOTHES --[1:N]--> OUTFITS (includes) - 3x relații (top, bottom, shoe)
+
+Indexuri: Highlight indexuri composite pe (user_id, category) pentru CLOTHES; (user_id, created_at) pentru OUTFITS.
+
+Constraints: NOT NULL pe campos cheie; CHECK constraints pentru enums; FOREIGN KEY cascading deletes on user delete.
+
+---
+
+\section{5. Diagramă: Model Conceptual de Compatibilitate Cromatică}
+
+\textbf{Locație recomandată}: Capitolul 5, subsecția "Formalizare Matematică"
+
+\textbf{Tip}: Conceptual/Mathematical visualization
+
+\textbf{Prompt detaliat}:
+
+Creează o vizualizare care explică funcția de compatibilitate $S(c_1, c_2) = \alpha H + \beta M + \gamma N + \delta T$:
+
+Arată 4 paneluri, fiecare pentru o componentă:
+
+1. Panel H (Harmonia): Arată color wheel HSV cu două culori la 180° (complementare, H=1.0) și la alte unghiuri (H decreasing). Include formula: $H(c_1, c_2) = 1 - |(\text{hue}(c_1) - \text{hue}(c_2)) - 180°| / 180°$
+
+2. Panel M (Monochromatic): Arată spectru RGB cu două culori apropiate (M=1.0) și departe (M→0). Formula: $M(c_1, c_2) = 1 - d(c_1, c_2) / d_{max}$
+
+3. Panel N (Neutral): Arată legenda neutru (alb, negru, gri) vs. accent culori. Formula: $N(c_1, c_2) = \text{bonus dacă oricare din culori este neutru}$
+
+4. Panel T (Trend): Arată calendar cu sezoane și culori populare. Formula: $T(c_1, c_2) = \text{boost dacă ambele culori sunt in trend colors}$
+
+Bottom: Exemplu concret de outfit (3 imagini) cu breakdown de scor: "Alb (neutral) + Bleumarin (armonie 85°, monocromatism 70%) + Negru (neutral) = Total 0.87"
+
+---
+
+\section{6. Diagramă: Fluxul UI Mobile - Wireflow cu Data Binding}
+
+\textbf{Locație recomandată}: Capitolul 5, subsecția "Dezvoltarea Interfeței Mobile"
+
+\textbf{Tip}: Wireflow diagram
+
+\textbf{Prompt detaliat}:
+
+Creează un wireflow care arată navigația în aplicație și binding-ul datelor:
+
+Ecrane:
+1. Login Screen → POST /auth/login → receive JWT token → store în AsyncStorage
+2. Wardrobe Screen (Tab 1) → GET /clothes?user_id={userId} → display grid de imagini
+   - Button "Add Photo" → modal camera/gallery → POST /clothes/upload → success toast
+3. Generator Screen (Tab 2) → POST /get_suggestion (cu FormData imagini selectate) → receive Outfit JSON → render OutfitCard
+   - Like button → POST /outfits/{id}/like → update UI (heart icon becomes red)
+   - Swipe left → DELETE /outfits/{id}
+4. History Screen (Tab 3) → GET /outfits/history → display cards din array response
+
+Fiecare ecran arată:
+- Input/output state (ce data intră, ce iese)
+- Headers HTTP necesari (Authorization: Bearer {token})
+- Response schemas în JSON snippet-uri
+
+---
+
+\section{7. Diagramă: Comparație Performanță - Timeline Chart}
+
+\textbf{Locație recomandată}: Capitolul 6 (Testare), subsecția "Detalii Măsurători"
+
+\textbf{Tip}: Timeline/bar chart
+
+\textbf{Prompt detaliat}:
+
+Creează o visualizare care compară timpii de răspuns ai endpoint-urilor:
+
+1. Axa X: Endpoint-uri (/health, /get_suggestion, /web_outfit, /outfits/history, /outfits/{id}/like)
+2. Axa Y: Timp (ms), scară 0-1000
+3. Pentru fiecare endpoint, arată:
+   - Min, Max, Mean ca bar chart cu eroare bars
+   - Scatter plot overlay showing individual measurements
+
+Culori:
+- Verde: sub 50 ms (fast)
+- Galben: 50-200 ms (acceptable)
+- Portocaliu: 200-500 ms (slower but acceptable)
+- Roșu: >500 ms (slow, needs optimization)
+
+Linie orizontală de referință: 1000 ms (user frustration threshold).
+
+---
+
+\section{8. Diagramă: Rezultate Testare - Heatmap de Acuratețe}
+
+\textbf{Locație recomandată}: Capitolul 6, subsecția "Evaluarea Calității"
+
+\textbf{Tip}: Heatmap
+
+\textbf{Prompt detaliat}:
+
+Creează o heatmap care arată acuratețea clasificării pe categorii vestimentare:
+
+Matrice 3x3 (Predicted vs. Actual):
+- Rânduri: Actual (Top, Bottom, Shoe)
+- Coloane: Predicted (Top, Bottom, Shoe)
+- Celule: Count + percentage
+
+Colorează celule după intensitate:
+- Verde închis: 95-100% (perfect)
+- Verde deschis: 80-94% (good)
+- Galben: 60-79% (fair)
+- Roșu: <60% (poor)
+
+Inclusiv: Precision, Recall, F1-score în margini.
+
+---
+
+\section{9. Diagramă: Corelație Score Algoritm vs. Evaluare Umană}
+
+\textbf{Locație recomandată}: Capitolul 6, subsecția "Evaluarea Calității"
+
+\textbf{Tip}: Scatter plot cu trend line
+
+\textbf{Prompt detaliat}:
+
+Creează un scatter plot care arată corelația între scorul algoritmic și notele umane:
+
+- Axa X: Scor Algoritm (0.6-1.0)
+- Axa Y: Notă Umană Medie (1-5)
+- Fiecare punct: un outfit testat (25 puncte total)
+- Trend line: Linear regression cu r=0.78 labeled
+- Confidence band (±95%) în jur de linie
+
+Include: Textbox cu statistici (r-value, p-value, equation).
+
+---
+
+\section{10. Diagramă: SWOT Analysis - Canvas Visual}
+
+\textbf{Locație recomandată}: Capitolul 3 (Studiu Bibliografic), după tabel SWOT
+
+\textbf{Tip}: SWOT quadrant diagram
+
+\textbf{Prompt detaliat}:
+
+Creează o SWOT analysis visualization (2x2 quadrant):
+
+- Top-Left (Strengths): Transparency, Speed, Usability, Modularity - highlight cu verde
+- Top-Right (Weaknesses): MVP stage, Scaling challenges, Hardcoded trends, Basic ML - highlight cu roșu
+- Bottom-Left (Opportunities): E-Commerce, AR, RL personalization, Global expand - highlight cu albastru
+- Bottom-Right (Threats): Competition (Acloset, Whering), Saturation, Social fashion shifts, BigTech - highlight cu portocaliu
+
+Fiecare quadrant: bullet points cu iconuri reprezentative.
+
+---
+
+\section{11. Diagramă: Regresia Liniară - Performance vs. Image Size}
+
+\textbf{Locație recomandată}: Capitolul 6 (Testare), investigații suplimentare
+
+\textbf{Tip}: Scatter plot cu regression curve
+
+\textbf{Prompt detaliat}:
+
+Creează un plot care arată cum variază performance în funcție de dimensiunea imaginii încărcate:
+
+- Axa X: Image size (KB) 100-5000
+- Axa Y: Response time (ms) 300-900
+- Puncte: Măsurători reale din 30 teste
+- Linie: Linear regression cu ecuația afișată
+- Inclusiv: Outliers identify-ați și analizați
+
+Mesaj: Are o corelaț strongly positive, sugerând că optimization de image compression ar ajuta.
+
+---
+
+\section{12. Diagramă: Roadmap Viitor - Timeline cu Milestones}
+
+\textbf{Locație recomandată}: Capitolul 8 (Concluzii), subsecția "Direcții Viitoare"
+
+\textbf{Tip}: Gantt chart / timeline
+
+\textbf{Prompt detaliat}:
+
+Creează un roadmap visual cu faze viitoare de dezvoltare:
+
+Timeline: 6-24 luni
+
+Faze:
+1. Q2 2026: Beta launch, public UAT (4 săptămâni)
+2. Q3 2026: Feedback integration, bug fixes, security audit (8 săptămâni)
+3. Q4 2026: AR Try-On MVP integration (12 săptămâni, paralel cu faza 2)
+4. Q1 2027: E-Commerce partnerships, API integrations (8 săptămâni)
+5. Q2 2027: RL personalization module (16 săptămâni, complexă)
+6. Q3 2027: Launch v2.0 production-ready
+
+Fiecare fază: color-coded (verde=planning, albastru=development, portocaliu=testing, roșu=launch)
+
+---
+
+\section{Instrumente și Alte Recomandări}
+
+\subsection{Software/Tools}
+
+\begin{itemize}
+    \item \textbf{Architecture/Flow Diagrams}: Lucidchart, Diagram.io, Draw.io, Figma, OmniGraffle
+    \item \textbf{Data Visualization}: Matplotlib (Python), Plotly, R (ggplot2), Tableau
+    \item \textbf{LaTeX Native}: TikZ/pgfplots (native LaTeX, consistency garantată)
+    \item \textbf{Screenshots/UI}: Figma, Sketch, AdobeXD (din React Native simulator)
+\end{itemize}
+
+\subsection{Standarde de Calitate}
+
+\begin{itemize}
+    \item Rezoluție: Minimum 300 DPI pentru print
+    \item Format: PDF preferred pentru vector graphics (scalable)
+    \item Culori: Palette profesională, accessible (colorblind-friendly)
+    \item Font: Consistent cu teză (Cambria sau Times New Roman pentru math)
+    \item Legenda: Obligatorie; fontsize readable
+    \item Caption: Descriptiv, cu referință la text
+\end{itemize}
+
+\subsection{Checklist Pre-Submission}
+
+Pentru fiecare diagramă, verifică:
+\begin{enumerate}
+    \item Data accuracy - sunt numerele/statisticile corecte și din teză?
+    \item Readability - se vede clar pe format A4 în print?
+    \item Alignment - sunt tous diagrama și text align-ate bine în pagină?
+    \item Labeling - sunt todas componentele labeled și explicite?
+    \item Citation - este diagramă și caption-ul citat în text capitolul respectiv?
+\end{enumerate}
+

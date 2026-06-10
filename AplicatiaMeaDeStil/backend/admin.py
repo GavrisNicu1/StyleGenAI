@@ -1,8 +1,17 @@
 """
 Admin module - handles admin dashboard statistics and user management
 """
+import os
 from datetime import datetime, timedelta
 from database import execute_query, execute_query_one
+
+
+def _to_iso(value):
+    if value is None:
+        return None
+    if hasattr(value, 'isoformat'):
+        return value.isoformat()
+    return str(value)
 
 
 def get_dashboard_stats() -> dict:
@@ -13,61 +22,63 @@ def get_dashboard_stats() -> dict:
         dict: Dashboard statistics including users, outfits, and AI metrics
     """
     stats = {}
-    
-    # Total users
-    user_count_query = "SELECT COUNT(*) FROM users"
-    user_count = execute_query_one(user_count_query)
-    stats['total_users'] = user_count[0] if user_count else 0
-    
-    # New users today
-    today_users_query = """
-        SELECT COUNT(*) FROM users 
-        WHERE CAST(created_at AS DATE) = CAST(GETDATE() AS DATE)
-    """
-    today_users = execute_query_one(today_users_query)
-    stats['new_users_today'] = today_users[0] if today_users else 0
-    
-    # New users this week
-    week_users_query = """
-        SELECT COUNT(*) FROM users 
-        WHERE created_at >= DATEADD(day, -7, GETDATE())
-    """
-    week_users = execute_query_one(week_users_query)
-    stats['new_users_week'] = week_users[0] if week_users else 0
-    
-    # Total outfits
-    outfit_count_query = "SELECT COUNT(*) FROM outfits"
-    outfit_count = execute_query_one(outfit_count_query)
-    stats['total_outfits'] = outfit_count[0] if outfit_count else 0
-    
-    # Liked outfits (satisfaction rate)
-    liked_query = "SELECT COUNT(*) FROM outfits WHERE liked = 1"
-    liked_count = execute_query_one(liked_query)
-    liked_count_val = liked_count[0] if liked_count else 0
+    db_type = os.getenv('DB_TYPE', 'mssql').lower()
+
+    def _pick(sqlite_query: str, mssql_query: str) -> str:
+        return sqlite_query if db_type == 'sqlite' else mssql_query
+
+    def _count(query: str) -> int:
+        result = execute_query_one(query)
+        return result[0] if result else 0
+
+    stats['total_users'] = _count("SELECT COUNT(*) FROM users")
+    stats['new_users_today'] = _count(_pick(
+        """
+            SELECT COUNT(*) FROM users
+            WHERE date(created_at) = date('now')
+        """,
+        """
+            SELECT COUNT(*) FROM users
+            WHERE CAST(created_at AS DATE) = CAST(GETDATE() AS DATE)
+        """
+    ))
+    stats['new_users_week'] = _count(_pick(
+        """
+            SELECT COUNT(*) FROM users
+            WHERE created_at >= datetime('now', '-7 days')
+        """,
+        """
+            SELECT COUNT(*) FROM users
+            WHERE created_at >= DATEADD(day, -7, GETDATE())
+        """
+    ))
+
+    stats['total_outfits'] = _count("SELECT COUNT(*) FROM outfits")
+    liked_count_val = _count("SELECT COUNT(*) FROM outfits WHERE liked = 1")
     stats['liked_outfits'] = liked_count_val
-    
-    # Calculate satisfaction rate
-    if stats['total_outfits'] > 0:
-        stats['satisfaction_rate'] = round((liked_count_val / stats['total_outfits']) * 100, 2)
-    else:
-        stats['satisfaction_rate'] = 0
-    
-    # Outfits today
-    today_outfits_query = """
-        SELECT COUNT(*) FROM outfits 
-        WHERE CAST(created_at AS DATE) = CAST(GETDATE() AS DATE)
-    """
-    today_outfits = execute_query_one(today_outfits_query)
-    stats['outfits_today'] = today_outfits[0] if today_outfits else 0
-    
-    # Outfits this week
-    week_outfits_query = """
-        SELECT COUNT(*) FROM outfits 
-        WHERE created_at >= DATEADD(day, -7, GETDATE())
-    """
-    week_outfits = execute_query_one(week_outfits_query)
-    stats['outfits_week'] = week_outfits[0] if week_outfits else 0
-    
+    stats['satisfaction_rate'] = round((liked_count_val / stats['total_outfits']) * 100, 2) if stats['total_outfits'] > 0 else 0
+
+    stats['outfits_today'] = _count(_pick(
+        """
+            SELECT COUNT(*) FROM outfits
+            WHERE date(created_at) = date('now')
+        """,
+        """
+            SELECT COUNT(*) FROM outfits
+            WHERE CAST(created_at AS DATE) = CAST(GETDATE() AS DATE)
+        """
+    ))
+    stats['outfits_week'] = _count(_pick(
+        """
+            SELECT COUNT(*) FROM outfits
+            WHERE created_at >= datetime('now', '-7 days')
+        """,
+        """
+            SELECT COUNT(*) FROM outfits
+            WHERE created_at >= DATEADD(day, -7, GETDATE())
+        """
+    ))
+
     return stats
 
 
@@ -81,20 +92,32 @@ def get_activity_chart_data(days: int = 7) -> list:
     Returns:
         list: List of dictionaries with date and count
     """
-    query = """
-        SELECT CAST(created_at AS DATE) as date, COUNT(*) as count
-        FROM outfits
-        WHERE created_at >= DATEADD(day, ?, GETDATE())
-        GROUP BY CAST(created_at AS DATE)
-        ORDER BY date
-    """
+    db_type = os.getenv('DB_TYPE', 'mssql').lower()
+    if db_type == 'sqlite':
+        query = """
+            SELECT date(created_at) as date, COUNT(*) as count
+            FROM outfits
+            WHERE created_at >= datetime('now', ?)
+            GROUP BY date(created_at)
+            ORDER BY date
+        """
+        params = (f"-{days} days",)
+    else:
+        query = """
+            SELECT CAST(created_at AS DATE) as date, COUNT(*) as count
+            FROM outfits
+            WHERE created_at >= DATEADD(day, ?, GETDATE())
+            GROUP BY CAST(created_at AS DATE)
+            ORDER BY date
+        """
+        params = (-days,)
     
-    results = execute_query(query, (-days,), fetch=True)
+    results = execute_query(query, params, fetch=True)
     
     activity_data = []
     for row in results:
         activity_data.append({
-            'date': row[0].isoformat() if row[0] else None,
+            'date': _to_iso(row[0]) if row[0] else None,
             'count': row[1]
         })
     
@@ -129,7 +152,7 @@ def get_style_distribution() -> dict:
                     style_counts['sport'] += 1
                 else:
                     style_counts['other'] += 1
-        except:
+        except (TypeError, ValueError):
             continue
     
     return style_counts
@@ -145,13 +168,24 @@ def get_top_users(limit: int = 5) -> list:
     Returns:
         list: List of user dictionaries with email and outfit count
     """
-    query = """
-        SELECT TOP (?) u.email, COUNT(o.id) as outfit_count
-        FROM users u
-        LEFT JOIN outfits o ON u.id = o.user_id
-        GROUP BY u.email
-        ORDER BY outfit_count DESC
-    """
+    db_type = os.getenv('DB_TYPE', 'mssql').lower()
+    if db_type == 'sqlite':
+        query = """
+            SELECT u.email, COUNT(o.id) as outfit_count
+            FROM users u
+            LEFT JOIN outfits o ON u.id = o.user_id
+            GROUP BY u.email
+            ORDER BY outfit_count DESC
+            LIMIT ?
+        """
+    else:
+        query = """
+            SELECT TOP (?) u.email, COUNT(o.id) as outfit_count
+            FROM users u
+            LEFT JOIN outfits o ON u.id = o.user_id
+            GROUP BY u.email
+            ORDER BY outfit_count DESC
+        """
     
     results = execute_query(query, (limit,), fetch=True)
     
@@ -187,7 +221,7 @@ def get_all_users() -> list:
             'id': row[0],
             'email': row[1],
             'role': row[2],
-            'created_at': row[3].isoformat() if row[3] else None,
+            'created_at': _to_iso(row[3]) if row[3] else None,
             'outfit_count': row[4]
         })
     
@@ -204,12 +238,22 @@ def get_recent_outfits(limit: int = 10) -> list:
     Returns:
         list: List of outfit dictionaries
     """
-    query = """
-        SELECT TOP (?) o.id, o.user_id, u.email, o.created_at, o.liked
-        FROM outfits o
-        JOIN users u ON o.user_id = u.id
-        ORDER BY o.created_at DESC
-    """
+    db_type = os.getenv('DB_TYPE', 'mssql').lower()
+    if db_type == 'sqlite':
+        query = """
+            SELECT o.id, o.user_id, u.email, o.created_at, o.liked
+            FROM outfits o
+            JOIN users u ON o.user_id = u.id
+            ORDER BY o.created_at DESC
+            LIMIT ?
+        """
+    else:
+        query = """
+            SELECT TOP (?) o.id, o.user_id, u.email, o.created_at, o.liked
+            FROM outfits o
+            JOIN users u ON o.user_id = u.id
+            ORDER BY o.created_at DESC
+        """
     
     results = execute_query(query, (limit,), fetch=True)
     
@@ -219,7 +263,7 @@ def get_recent_outfits(limit: int = 10) -> list:
             'id': row[0],
             'user_id': row[1],
             'user_email': row[2],
-            'created_at': row[3].isoformat() if row[3] else None,
+            'created_at': _to_iso(row[3]) if row[3] else None,
             'liked': bool(row[4])
         })
     

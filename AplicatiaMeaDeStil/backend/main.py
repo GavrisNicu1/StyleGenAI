@@ -1,6 +1,6 @@
 import base64
 import io
-from typing import List, Optional, Tuple
+from typing import Annotated, List, Optional, Tuple
 
 from fastapi import FastAPI, UploadFile, Form, File
 from fastapi.middleware.cors import CORSMiddleware
@@ -26,11 +26,11 @@ async def health():
 
 @app.post("/get_suggestion")
 async def get_suggestion(
-    style_filter: str = Form(...),
-    season: str = Form(...),
-    gender: str = Form(...),
-    silhouette: str = Form(...),
-    categories: List[str] = Form([]),
+    style_filter: Annotated[str, Form(...)],
+    season: Annotated[str, Form(...)],
+    gender: Annotated[str, Form(...)],
+    silhouette: Annotated[str, Form(...)],
+    categories: Annotated[List[str], Form()] = [],
     files: Optional[List[UploadFile]] = None,
 ):
     # NOTE: This is a stub/dummy response to unblock frontend integration.
@@ -65,10 +65,10 @@ def _resize_to_fit(box_size: Tuple[int, int], img: Image.Image) -> Image.Image:
 
 @app.post("/compose_mannequin")
 async def compose_mannequin(
-    mannequin: str = Form("male"),
-    top: Optional[UploadFile] = File(None),
-    bottom: Optional[UploadFile] = File(None),
-    shoes: Optional[UploadFile] = File(None),
+    mannequin: Annotated[str, Form()] = "male",
+    top: Annotated[Optional[UploadFile], File()] = None,
+    bottom: Annotated[Optional[UploadFile], File()] = None,
+    shoes: Annotated[Optional[UploadFile], File()] = None,
 ):
     """
     Accepts clothing photos, removes background, and composites them onto a
@@ -88,7 +88,7 @@ async def compose_mannequin(
 
     canvas = template.copy()
 
-    def place_item(file: Optional[UploadFile], box: Tuple[int, int, int, int]):
+    async def place_item(file: Optional[UploadFile], box: Tuple[int, int, int, int]):
         if not file:
             return
         raw = await file.read()

@@ -1,52 +1,25 @@
 \chapter{Introducere}
 \label{cap:introducere}
 
-\section{Contextul temei}
+Pasiunea pentru domeniul modei și estetica vizuală a reprezentat întotdeauna un punct de interes personal. Observația constantă a modului în care oamenii se raportează la vestimentație a scos la iveală o provocare comună: dificultatea de a compune ținute coerente și de a se alinia la tendințele actuale. Multe persoane, deși dețin o garderobă variată, se confruntă zilnic cu indecizia și nesiguranța, neavând la dispoziție cunoștințele unui designer vestimentar.
 
-Industria modei traversează în prezent o transformare digitală accelerată, redefinind fundamental modul în care consumatorii interacționează cu produsele vestimentare. Într-o eră dominată de comerțul electronic (\textit{e-commerce}) și de rețelele sociale, utilizatorii sunt expuși unui volum fără precedent de opțiuni stilistice. Acest fenomen, deși aparent benefic, generează adesea un paradox al alegerii (\textit{paradox of choice}): abundența de opțiuni duce la dificultăți în luarea deciziilor, anxietate și, paradoxal, la o satisfacție redusă față de alegerea finală.
+Această lucrare de licență pornește de la această problemă concretă. Proiectul dezvoltă o soluție tehnologică, sub forma unei aplicații mobile, care funcționează ca un asistent stilistic personal. Aplicația oferă utilizatorilor recomandări de ținute bazate pe articolele vestimentare proprii, sugerând combinații de culori armonioase și haine care corespund tendințelor actuale. Astfel, procesul de a te îmbrăca devine mai simplu, mai rapid și mai creativ.
 
-Mai mult, problema nu se limitează la procesul de achiziție, ci se extinde asupra gestionării garderobei personale. Studiile recente indică faptul că un procent semnificativ din hainele achiziționate rămân nepurtate sau sunt subutilizate, deoarece proprietarii nu identifică modalități adecvate de a le combina. Această ineficiență are implicații nu doar financiare pentru consumator, ci și ecologice, industria textilă fiind una dintre cele mai poluante la nivel global. Nevoia de a maximiza utilizarea articolelor vestimentare existente prin combinații noi și estetice devine, astfel, o problemă de actualitate.
+\section{Contextul Tehnic și Științific}
 
-În acest context, inteligența artificială (IA) și sistemele de recomandare au încetat să fie doar instrumente de marketing pentru retaileri, devenind asistenți personali veritabili. Dacă primele generații de algoritmi se concentrau pe \textit{similitudine} ("dacă ți-a plăcut produsul A, îți va plăcea și produsul B"), noile abordări vizează \textit{complementaritatea} ("produsul A se potrivește estetic cu produsul B"). Această trecere de la predicția preferinței individuale la predicția compatibilității dintre articole reprezintă o provocare tehnică majoră, implicând înțelegerea unor concepte abstracte precum stil, armonie cromatică și context social.
+Industria modei și modul în care utilizatorii interacționează cu produsele vestimentare au fost puternic influențate de digitalizare și de migrarea serviciilor către platforme online și aplicații mobile. În prezent, utilizatorii se confruntă cu un volum mare de opțiuni (atât în mediul de e-commerce, cât și în propria garderobă), iar procesul de alegere a unei ținute potrivite devine adesea dificil: necesită timp, presupune decizii repetate și implică atât preferințe personale, cât și criterii de compatibilitate vizuală (culori, contrast, echilibru, stil) \cite{kang2017visually}. Această problemă, cunoscută în literatură sub termenul de "decision fatigue", reduce satisfacția utilizatorului și impactează negativ experiența de e-commerce \cite{fashion_ai_review}.
 
-\section{Conturarea domeniului exact al temei}
+În acest context, sistemele de recomandare au devenit o componentă esențială pentru personalizarea experienței utilizatorului, fiind utilizate pentru a sugera elemente relevante în funcție de comportament, preferințe și context. Putem identifica mai multe direcții majore pentru construirea recomandărilor: metode \textit{content-based}, metode \textit{collaborative} și abordări hibride, fiecare având avantaje și limitări specifice \cite{adomavicius2005toward}. În practică, în special pentru domenii cu multe opțiuni și gusturi subiective (precum moda), personalizarea este un factor important pentru creșterea satisfacției utilizatorului și a calității experienței \cite{su2009survey}.
 
-Prezenta lucrare se situează la intersecția dintre \textit{Computer Vision} (Viziune Artificială) și \textit{Sisteme de Recomandare}. Domeniul exact poate fi definit ca fiind **asistența stilistică automatizată**, având ca obiectiv principal generarea de ținute vestimentare (\textit{outfit generation}) coerente din punct de vedere estetic.
+Un subset important al domeniului îl reprezintă recomandarea sau generarea unei ținute complete (outfit), unde obiectivul nu este doar selectarea unui singur produs, ci alegerea unei combinații coerente de articole \cite{mcauley2015image}. Alegerea unei combinații poate fi abordată fie prin modele de preferință învățate din date (abordare machine learning), fie prin euristici și reguli explicabile, construite pe baza unor principii de compatibilitate (de exemplu compatibilitatea cromatică) \cite{han2017learning}. În plus, în modă, relevanța sugestiilor este influențată și de tendințe sezoniere/anuale (culori populare, stiluri), astfel că introducerea unui „semnal de trend" poate crește utilitatea practică a recomandărilor \cite{kang2017visually}.
 
-Problema abordată este una complexă din cauza naturii subiective a modei. Nu există reguli matematice absolute care să definească "o ținută bună", însă există principii acceptate universal în teoria culorilor și în stilistică (ex: contrastul complementar, regula celor trei culori, asortarea texturilor). Provocarea tehnică a proiectului constă în traducerea acestor reguli euristice și a intuiției umane în algoritmi computaționali.
+\section{Motivația și Relevanța Problemei}
 
-Aplicația dezvoltată, \textit{StyleGenAI}, propune o abordare hibridă pentru rezolvarea acestei probleme:
-\begin{itemize}
-    \item \textbf{Analiza Vizuală}: Utilizarea rețelelor neurale convoluționale (CNN) pentru a "înțelege" hainele utilizatorului, extrăgând atribute esențiale precum categoria (pantaloni, cămașă, încălțăminte) și culoarea dominantă.
-    \item \textbf{Motorul de Compatibilitate}: Implementarea unui algoritm care verifică compatibilitatea cromatică între articole pe baza teoriei culorilor (Itten's color wheel), filtând combinațiile care sunt armonioase vizual.
-    \item \textbf{Contextualizarea}: Integrarea factorului "ocazie" (ex: Business, Casual, Sport) pentru a asigura că ținuta nu este doar estetică, ci și adecvată situației.
-\end{itemize}
+Domeniul fashion technology (Fashion AI) a cunoscut o evoluție accelerată în ultimii 5 ani, cu aplicații precum Acloset, Whering și Polyvore dominând piața retail vestimentar \cite{fashion_ai_review}. Cu toate acestea, aceste soluții prezintă limitări în ceea ce privește transparența algoritmului, flexibilitatea regulilor de compatibilitate și integrarea efectivă a semnalelor de trend.
 
-Deși literatura de specialitate abundă în soluții pentru segmentul feminin, această lucrare se concentrează preponderent pe moda masculină. Această alegere este motivată de o nișă de piață mai puțin explorată, unde regulile vestimentare sunt, în general, mai rigide și mai ușor de codificat algoritmic, oferind un punct de plecare ideal pentru validarea unui prototip funcțional.
+Relevanța acestei lucrări se manifestă pe mai multe dimensiuni:
 
-\section{Obiective și Motivație}
-
-Motivația dezvoltării acestui sistem este dublă. Pe de o parte, există o **nevoie practică a utilizatorului**: reducerea timpului petrecut dimineața pentru alegerea hainelor și creșterea încrederii în sine prin purtarea unor ținute corecte stilistic. Pe de altă parte, există o **nevoie tehnică**: explorarea modului în care algoritmii de învățare automată pot fi adaptați pentru sarcini creative, unde rezultatul "corect" este subiectiv.
-
-Scopul principal este realizarea unui sistem \textit{end-to-end}, de la interfața mobilă până la backend-ul de procesare, care să demonstreze fezabilitatea unui stilist digital personal.
-
-Obiectivele specifice ale lucrării sunt:
 \begin{enumerate}
-    \item \textbf{Dezvoltarea unei infrastructuri scalabile}: Proiectarea unei arhitecturi client-server capabile să gestioneze utilizatori multipli și procesare de imagini în timp real.
-    \item \textbf{Implementarea unui clasificator de stil}: Antrenarea și integrarea unui model de Deep Learning capabil să recunoască tipul de îmbrăcăminte dintr-o fotografie neprofesională (făcută cu telefonul).
-    \item \textbf{Crearea algoritmului de generare}: Elaborarea logicii de combinare a articolelor (Top + Bottom + Shoes) care maximizează un scor de compatibilitate definit.
-    \item \textbf{Integrarea tendințelor}: Dezvoltarea unui modul care poate ajusta recomandările în funcție de trenduri externe, asigurând relevanța sugestiilor în timp.
-\end{enumerate}
-
-\section{Structura tezei}
-
-Lucrarea este structurată în opt capitole, urmărind fluxul logic de la teorie la implementare și validare:
-
-\begin{itemize}
-    \item \textbf{Capitolul 2 (Obiective)} detaliază cerințele funcționale și non-funcționale ale aplicației, definind criteriile de succes.
-    \item \textbf{Capitolul 3 (Studiu Bibliografic)} analizează stadiul actual al artei, prezentând tehnologiile existente de recomandare vizuală și limitările acestora.
-    \item \textbf{Capitolul 4 (Fundamentare Teoretică)} explică principiile matematice și algoritmice din spatele rețelelor neurale și a teoriei culorilor utilizate.
-    \item \textbf{Capitolul 5 (Implementare)} descrie arhitectura sistemului, deciziile de proiectare și detaliile tehnice ale codului sursă.
-    \item \textbf{Capitolul 6 (Testare)} și \textbf{Capitolul 7 (Manual de Utilizare)} sunt dedicate validării funcționalității și documentării modului de utilizare.
-    \item \textbf{Capitolul 8 (Concluzii)} sintetizează rezultatele obținute și propune direcții viitoare de cercetare.
-\end{itemize}
+    \item \textbf{Transparență Algoritmică}: Spre deosebire de metodele black-box bazate pe deep learning, acest proiect propune o abordare explicabilă unde utilizatorul înțelege rațiunea din spatele fiecărei recomandări.
+    \item \textbf{Scalabilitate Mobilă}: Aplicația este optimizată pentru dispozitivele mobile cu constrângeri de resurse, utilizând React Native pentru maximă compatibilitate cross-platform \cite{reactnative_doc}.
+    \item \textbf{Integrare Trend Semantică}: În contrast cu competitorii care ignorează sau hardcodează trendurile, StyleGenAI oferă o metodologie pentru integrare dinamică a semnalelor sezoni

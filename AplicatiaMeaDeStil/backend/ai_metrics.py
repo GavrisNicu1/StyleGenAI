@@ -3,8 +3,20 @@ ai_metrics.py - AI Generation Metrics Logging
 Tracks outfit generation events for admin analytics
 """
 import os
-from typing import Optional
+from typing import Optional, Any
 from database import execute_query, execute_query_one
+
+
+def _row_value(row: Any, key: str, index: int, default: Any = 0) -> Any:
+    if row is None:
+        return default
+    if isinstance(row, dict):
+        return row.get(key, default)
+    try:
+        value = row[index]
+    except Exception:
+        return default
+    return default if value is None else value
 
 
 def log_generation(
@@ -61,8 +73,9 @@ def get_generation_statistics() -> dict:
         """
         stats = execute_query_one(stats_query)
         
-        total = stats['total_generations'] or 0
-        successful = stats['successful_generations'] or 0
+        total = _row_value(stats, 'total_generations', 0, 0)
+        successful = _row_value(stats, 'successful_generations', 1, 0)
+        avg_processing_time = _row_value(stats, 'avg_processing_time', 2, 0)
         success_rate = (successful / total * 100) if total > 0 else 0
         
         return {
@@ -70,7 +83,7 @@ def get_generation_statistics() -> dict:
             'successful_generations': successful,
             'failed_generations': total - successful,
             'success_rate': round(success_rate, 2),
-            'avg_processing_time': round(stats['avg_processing_time'], 2) if stats['avg_processing_time'] else 0
+            'avg_processing_time': round(avg_processing_time, 2) if avg_processing_time else 0
         }
     except Exception as e:
         print(f"Error getting generation statistics: {e}")
@@ -146,12 +159,31 @@ def get_generation_timeline(days: int = 7) -> list:
                 ORDER BY date ASC
             """
         results = execute_query(query, (days,))
-        return [{
-            'date': row['date'].strftime('%Y-%m-%d'),
-            'total': row['total'],
-            'successful': row['successful'],
-            'failed': row['failed']
-        } for row in results]
+        timeline = []
+        for row in results:
+            if isinstance(row, dict):
+                raw_date = row.get('date')
+                total = row.get('total')
+                successful = row.get('successful')
+                failed = row.get('failed')
+            else:
+                raw_date = row[0]
+                total = row[1]
+                successful = row[2]
+                failed = row[3]
+
+            if hasattr(raw_date, 'strftime'):
+                date_str = raw_date.strftime('%Y-%m-%d')
+            else:
+                date_str = str(raw_date)
+
+            timeline.append({
+                'date': date_str,
+                'total': total,
+                'successful': successful,
+                'failed': failed
+            })
+        return timeline
     except Exception as e:
         print(f"Error getting generation timeline: {e}")
         return []

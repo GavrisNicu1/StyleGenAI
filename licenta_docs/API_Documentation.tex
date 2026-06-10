@@ -1,0 +1,848 @@
+\appendix
+\chapter{Documentația API REST Completă}
+\label{cap:api_documentation}
+
+Acest capitol prezintă specificația completă a API-ului REST pentru backend-ul StyleGenAI. Documentația include sintaxa requestului, response schemas, coduri de eroare și exemple practice.
+
+\section{Convenții și Standarde}
+
+\subsection{Protocol și Format}
+
+\begin{itemize}
+    \item \textbf{Protocol}: HTTP/1.1 cu suport HTTPS (recomanda în production)
+    \item \textbf{Content-Type}: \texttt{application/json} (implicit) sau \texttt{multipart/form-data} (pentru upload fișiere)
+    \item \textbf{Base URL}: \texttt{http://localhost:5000} (dev) sau \texttt{https://api.stylegenai.com} (production)
+    \item \textbf{Encoding}: UTF-8
+\end{itemize}
+
+\subsection{Autentificare}
+
+Fiecare request la endpoint-uri protejate trebuie să includă header:
+
+\begin{lstlisting}[language=HTTP]
+Authorization: Bearer <access_token>
+\end{lstlisting}
+
+unde \texttt{<access\_token>} este JWT token primit din login. Token-ul expiră după 24 ore.
+
+\subsection{Format Răspuns de Eroare}
+
+Erorile sunt returnate în format JSON consistent:
+
+\begin{lstlisting}[language=JSON]
+{
+  "success": false,
+  "error": "Descriere error",
+  "error_code": "ERROR_CODE_CONSTANT",
+  "status": 400,
+  "timestamp": "2026-05-21T10:30:00Z"
+}
+\end{lstlisting}
+
+---
+
+\section{Autentificare}
+
+\subsection{POST /auth/register}
+
+\textbf{Descriere}: Înregistrare utilizator nou și emitere JWT token.
+
+\textbf{Request}:
+
+\begin{lstlisting}[language=HTTP]
+POST /auth/register HTTP/1.1
+Content-Type: application/json
+\end{lstlisting}
+
+\begin{lstlisting}[language=JSON]
+{
+  "email": "user@example.com",
+  "password": "SecurePassword123!",
+  "username": "john_doe"
+}
+\end{lstlisting}
+
+\textbf{Validații}:
+\begin{itemize}
+    \item Email: format RFC 5322, unique în DB
+    \item Password: minimum 8 caractere, cel puțin 1 uppercase, 1 lowercase, 1 digit, 1 special char
+    \item Username: 3-30 caractere, alphanumeric + underscore
+\end{itemize}
+
+\textbf{Response Succes (201)}:
+
+\begin{lstlisting}[language=JSON]
+{
+  "success": true,
+  "user_id": 42,
+  "email": "user@example.com",
+  "username": "john_doe",
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "expires_in": 86400,
+  "message": "Utilizator înregistrat cu succes"
+}
+\end{lstlisting}
+
+\textbf{Response Erori}:
+
+\begin{lstlisting}[language=JSON]
+// 400 - Email deja înregistrat
+{
+  "success": false,
+  "error": "Email deja înregistrat",
+  "error_code": "EMAIL_EXISTS",
+  "status": 400
+}
+\end{lstlisting}
+
+\begin{lstlisting}[language=JSON]
+// 400 - Password slab
+{
+  "success": false,
+  "error": "Password nu întrunește criterii de securitate",
+  "error_code": "WEAK_PASSWORD",
+  "status": 400,
+  "details": "Necesită: 8+ chars, uppercase, lowercase, digit, special char"
+}
+\end{lstlisting}
+
+---
+
+\subsection{POST /auth/login}
+
+\textbf{Descriere}: Autentificare și emitere token JWT.
+
+\textbf{Request}:
+
+\begin{lstlisting}[language=HTTP]
+POST /auth/login HTTP/1.1
+Content-Type: application/json
+\end{lstlisting}
+
+\begin{lstlisting}[language=JSON]
+{
+  "email": "user@example.com",
+  "password": "SecurePassword123!"
+}
+\end{lstlisting}
+
+\textbf{Response Succes (200)}:
+
+\begin{lstlisting}[language=JSON]
+{
+  "success": true,
+  "user_id": 42,
+  "email": "user@example.com",
+  "username": "john_doe",
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "expires_in": 86400
+}
+\end{lstlisting}
+
+\textbf{Response Erori}:
+
+\begin{lstlisting}[language=JSON]
+// 401 - Invalid credentials
+{
+  "success": false,
+  "error": "Email sau parolă incorectă",
+  "error_code": "INVALID_CREDENTIALS",
+  "status": 401
+}
+\end{lstlisting}
+
+---
+
+\subsection{POST /auth/refresh}
+
+\textbf{Descriere}: Reînnoire token JWT expirat.
+
+\textbf{Request}:
+
+\begin{lstlisting}[language=HTTP]
+POST /auth/refresh HTTP/1.1
+Authorization: Bearer <expired_token>
+\end{lstlisting}
+
+\textbf{Response Succes (200)}:
+
+\begin{lstlisting}[language=JSON]
+{
+  "success": true,
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "expires_in": 86400
+}
+\end{lstlisting}
+
+---
+
+\section{Gestionare Haine (Clothes Management)}
+
+\subsection{POST /clothes/upload}
+
+\textbf{Descriere}: Încărcare articol vestimentar cu imagine.
+
+\textbf{Request}:
+
+\begin{lstlisting}[language=HTTP]
+POST /clothes/upload HTTP/1.1
+Authorization: Bearer <token>
+Content-Type: multipart/form-data
+\end{lstlisting}
+
+FormData:
+\begin{itemize}
+    \item \texttt{image} (File, required): JPG/PNG/WebP, max 10MB
+    \item \texttt{category} (String, required): "Top" | "Bottom" | "Shoe"
+    \item \texttt{style} (String, optional): "Casual" | "Business" | "Sport" | "Formal"
+    \item \texttt{color\_hint} (String, optional): "Red" | "Blue" | etc. (pentru validare)
+\end{itemize}
+
+\textbf{Response Succes (201)}:
+
+\begin{lstlisting}[language=JSON]
+{
+  "success": true,
+  "cloth_id": 1001,
+  "user_id": 42,
+  "category": "Top",
+  "style": "Casual",
+  "dominant_color": "#FF5733",
+  "dominant_color_name": "Red",
+  "image_path": "/uploads/user_42/cloth_1001.jpg",
+  "image_thumbnail": "/uploads/user_42/cloth_1001_thumb.jpg",
+  "created_at": "2026-05-21T10:30:00Z"
+}
+\end{lstlisting}
+
+\textbf{Response Erori}:
+
+\begin{lstlisting}[language=JSON]
+// 413 - File prea mare
+{
+  "success": false,
+  "error": "Fișier prea mare (max 10MB)",
+  "error_code": "FILE_TOO_LARGE",
+  "status": 413
+}
+\end{lstlisting}
+
+\begin{lstlisting}[language=JSON]
+// 400 - Tip fișier invalid
+{
+  "success": false,
+  "error": "Tip fișier nepermis. Acceptate: JPG, PNG, WebP",
+  "error_code": "INVALID_FILE_TYPE",
+  "status": 400
+}
+\end{lstlisting}
+
+---
+
+\subsection{GET /clothes}
+
+\textbf{Descriere}: Listare haine utilizatorului curent.
+
+\textbf{Request}:
+
+\begin{lstlisting}[language=HTTP]
+GET /clothes?category=Top&style=Casual&limit=50&offset=0 HTTP/1.1
+Authorization: Bearer <token>
+\end{lstlisting}
+
+Query Parameters (optional):
+\begin{itemize}
+    \item \texttt{category}: "Top" | "Bottom" | "Shoe"
+    \item \texttt{style}: "Casual" | "Business" | "Sport" | "Formal"
+    \item \texttt{limit}: default 50
+    \item \texttt{offset}: default 0
+    \item \texttt{sort}: "created_at\_desc" (default) | "created_at_asc" | "category"
+\end{itemize}
+
+\textbf{Response Succes (200)}:
+
+\begin{lstlisting}[language=JSON]
+{
+  "success": true,
+  "clothes": [
+    {
+      "cloth_id": 1001,
+      "category": "Top",
+      "style": "Casual",
+      "dominant_color": "#FF5733",
+      "image_path": "/uploads/user_42/cloth_1001.jpg",
+      "created_at": "2026-05-21T10:30:00Z"
+    },
+    {
+      "cloth_id": 1002,
+      "category": "Bottom",
+      "style": "Casual",
+      "dominant_color": "#2E4053",
+      "image_path": "/uploads/user_42/cloth_1002.jpg",
+      "created_at": "2026-05-21T10:25:00Z"
+    }
+  ],
+  "total_count": 42,
+  "page": 1,
+  "per_page": 50
+}
+\end{lstlisting}
+
+---
+
+\subsection{DELETE /clothes/{cloth\_id}}
+
+\textbf{Descriere}: Ștergere articol vestimentar.
+
+\textbf{Request}:
+
+\begin{lstlisting}[language=HTTP]
+DELETE /clothes/1001 HTTP/1.1
+Authorization: Bearer <token>
+\end{lstlisting}
+
+\textbf{Response Succes (200)}:
+
+\begin{lstlisting}[language=JSON]
+{
+  "success": true,
+  "message": "Articol șters cu succes",
+  "cloth_id": 1001
+}
+\end{lstlisting}
+
+\textbf{Response Erori}:
+
+\begin{lstlisting}[language=JSON]
+// 404 - Articol nu găsit
+{
+  "success": false,
+  "error": "Articol nu găsit",
+  "error_code": "CLOTH_NOT_FOUND",
+  "status": 404
+}
+\end{lstlisting}
+
+\begin{lstlisting}[language=JSON]
+// 403 - Nu este owner
+{
+  "success": false,
+  "error": "Nu ai permisiune să ștergi acest articol",
+  "error_code": "FORBIDDEN",
+  "status": 403
+}
+\end{lstlisting}
+
+---
+
+\section{Generare Recomandări}
+
+\subsection{POST /get\_suggestion}
+
+\textbf{Descriere}: Generare outfit recommendation pe baza preferințelor și stării garderobei utilizatorului.
+
+\textbf{Request}:
+
+\begin{lstlisting}[language=HTTP]
+POST /get_suggestion HTTP/1.1
+Authorization: Bearer <token>
+Content-Type: application/json
+\end{lstlisting}
+
+\begin{lstlisting}[language=JSON]
+{
+  "season": "spring",
+  "occasion": "casual",
+  "filters": [
+    "exclude_formal",
+    "prefer_bold_colors"
+  ],
+  "limit_combinations": 1,
+  "preferences": {
+    "color_harmony": "complementary",
+    "coverage": "full"
+  }
+}
+\end{lstlisting}
+
+\textbf{Request Field Descriptions}:
+
+\begin{itemize}
+    \item \textbf{season} (String, required): "spring" | "summer" | "autumn" | "winter" - affects trend boost
+    \item \textbf{occasion} (String, optional): "casual" | "business" | "sport" | "formal" - filters articole
+    \item \textbf{filters} (Array, optional): list de filtre apply-ate
+    \item \textbf{limit\_combinations} (Int, optional, default 1): câte ținute to return (1-10)
+    \item \textbf{preferences} (Object, optional): personalization hints
+\end{itemize}
+
+\textbf{Response Succes (200)}:
+
+\begin{lstlisting}[language=JSON]
+{
+  "success": true,
+  "outfit": {
+    "outfit_id": 5001,
+    "user_id": 42,
+    "components": {
+      "top": {
+        "cloth_id": 1001,
+        "category": "Top",
+        "dominant_color": "#FFFFFF",
+        "dominant_color_name": "White",
+        "image_path": "/uploads/user_42/cloth_1001.jpg",
+        "style": "Casual"
+      },
+      "bottom": {
+        "cloth_id": 1002,
+        "category": "Bottom",
+        "dominant_color": "#2E4053",
+        "dominant_color_name": "Navy Blue",
+        "image_path": "/uploads/user_42/cloth_1002.jpg",
+        "style": "Casual"
+      },
+      "shoe": {
+        "cloth_id": 1003,
+        "category": "Shoe",
+        "dominant_color": "#34495E",
+        "dominant_color_name": "Dark Gray",
+        "image_path": "/uploads/user_42/cloth_1003.jpg",
+        "style": "Casual"
+      }
+    },
+    "compatibility_score": 0.87,
+    "compatibility_breakdown": {
+      "harmony_score": 0.85,
+      "monochromatic_score": 0.82,
+      "neutral_bonus": 0.15,
+      "trend_boost": 0.05
+    },
+    "reasoning": "Contrast optim între alb și bleumarin. Pantofii gri neutri completează armonia cromatică. Albul și bleumarin sunt în tendințe pentru primăvară 2026.",
+    "seasonality_match": 0.92,
+    "created_at": "2026-05-21T10:30:00Z"
+  },
+  "response_time_ms": 445,
+  "suggestions": [
+    {
+      "outfit_id": 5001,
+      "score": 0.87,
+      "rank": 1
+    }
+  ]
+}
+\end{lstlisting}
+
+\textbf{Response Erori}:
+
+\begin{lstlisting}[language=JSON]
+// 400 - Utilizator nu are suficiente articole
+{
+  "success": false,
+  "error": "Utilizatorul nu are suficiente articole pentru a genera o ținută completă",
+  "error_code": "INSUFFICIENT_CLOTHES",
+  "status": 400,
+  "details": "Necesare: minimum 1 Top, 1 Bottom, 1 Shoe. Actual: Top=0, Bottom=2, Shoe=1"
+}
+\end{lstlisting}
+
+---
+
+\subsection{POST /web\_outfit}
+
+\textbf{Descriere}: Generare outfit alternative din surse web (e-commerce integration).
+
+\textbf{Request}:
+
+\begin{lstlisting}[language=HTTP]
+POST /web_outfit HTTP/1.1
+Authorization: Bearer <token>
+Content-Type: application/json
+\end{lstlisting}
+
+\begin{lstlisting}[language=JSON]
+{
+  "reference_outfit_id": 5001,
+  "replace_component": "top",
+  "budget_max_usd": 100,
+  "retailers": ["Zalando", "H&M", "Uniqlo"]
+}
+\end{lstlisting}
+
+\textbf{Response Succes (200)}:
+
+\begin{lstlisting}[language=JSON]
+{
+  "success": true,
+  "web_alternatives": [
+    {
+      "product_id": "zalando_abc123",
+      "name": "Uniqlo White T-Shirt",
+      "price_usd": 29.99,
+      "url": "https://zalando.com/...",
+      "image": "https://cdn.zalando.com/...",
+      "retailer": "Zalando",
+      "compatibility_score": 0.91,
+      "in_stock": true
+    },
+    {
+      "product_id": "hm_def456",
+      "name": "H&M Cotton Tee White",
+      "price_usd": 19.99,
+      "url": "https://hm.com/...",
+      "image": "https://cdn.hm.com/...",
+      "retailer": "H&M",
+      "compatibility_score": 0.88,
+      "in_stock": true
+    }
+  ],
+  "response_time_ms": 780
+}
+\end{lstlisting}
+
+\textbf{Response Erori}:
+
+\begin{lstlisting}[language=JSON]
+// 404 - Outfit nu găsit
+{
+  "success": false,
+  "error": "Outfit ID nu găsit",
+  "error_code": "OUTFIT_NOT_FOUND",
+  "status": 404
+}
+\end{lstlisting}
+
+---
+
+\section{Gestionare Istoric și Favorite}
+
+\subsection{GET /outfits/history}
+
+\textbf{Descriere}: Retrieval istoric ținute generate.
+
+\textbf{Request}:
+
+\begin{lstlisting}[language=HTTP]
+GET /outfits/history?limit=20&offset=0&sort=created_at_desc&liked_only=false HTTP/1.1
+Authorization: Bearer <token>
+\end{lstlisting}
+
+Query Parameters:
+\begin{itemize}
+    \item \texttt{limit} (Int, default 20)
+    \item \texttt{offset} (Int, default 0)
+    \item \texttt{sort} ("created_at\_desc" | "created_at_asc" | "score_desc")
+    \item \texttt{liked\_only} (Boolean, default false)
+\end{itemize}
+
+\textbf{Response Succes (200)}:
+
+\begin{lstlisting}[language=JSON]
+{
+  "success": true,
+  "outfits": [
+    {
+      "outfit_id": 5001,
+      "user_id": 42,
+      "top_image": "/uploads/user_42/cloth_1001.jpg",
+      "bottom_image": "/uploads/user_42/cloth_1002.jpg",
+      "shoe_image": "/uploads/user_42/cloth_1003.jpg",
+      "compatibility_score": 0.87,
+      "liked": true,
+      "created_at": "2026-05-21T10:30:00Z"
+    }
+  ],
+  "total_count": 42,
+  "page": 1,
+  "per_page": 20
+}
+\end{lstlisting}
+
+---
+
+\subsection{POST /outfits/{id}/like}
+
+\textbf{Descriere}: Salvare outfit ca favorit.
+
+\textbf{Request}:
+
+\begin{lstlisting}[language=HTTP]
+POST /outfits/5001/like HTTP/1.1
+Authorization: Bearer <token>
+\end{lstlisting}
+
+\textbf{Response Succes (200)}:
+
+\begin{lstlisting}[language=JSON]
+{
+  "success": true,
+  "outfit_id": 5001,
+  "liked": true,
+  "updated_at": "2026-05-21T10:35:00Z"
+}
+\end{lstlisting}
+
+---
+
+\subsection{DELETE /outfits/{id}}
+
+\textbf{Descriere}: Ștergere outfit din istoric.
+
+\textbf{Request}:
+
+\begin{lstlisting}[language=HTTP]
+DELETE /outfits/5001 HTTP/1.1
+Authorization: Bearer <token>
+\end{lstlisting}
+
+\textbf{Response Succes (200)}:
+
+\begin{lstlisting}[language=JSON]
+{
+  "success": true,
+  "message": "Outfit șters cu succes",
+  "outfit_id": 5001
+}
+\end{lstlisting}
+
+---
+
+\section{Utility Endpoints}
+
+\subsection{GET /health}
+
+\textbf{Descriere}: Health check pentru diagnostic backend.
+
+\textbf{Request}:
+
+\begin{lstlisting}[language=HTTP]
+GET /health HTTP/1.1
+\end{lstlisting}
+
+\textbf{Response Succes (200)}:
+
+\begin{lstlisting}[language=JSON]
+{
+  "status": "healthy",
+  "timestamp": "2026-05-21T10:30:00Z",
+  "version": "1.0.0",
+  "database": "connected",
+  "services": {
+    "image_processing": "ok",
+    "auth": "ok",
+    "trends": "ok"
+  }
+}
+\end{lstlisting}
+
+---
+
+\subsection{GET /trends/{season}}
+
+\textbf{Descriere}: Retrieval trend colors pentru o sezon.
+
+\textbf{Request}:
+
+\begin{lstlisting}[language=HTTP]
+GET /trends/spring HTTP/1.1
+\end{lstlisting}
+
+\textbf{Response Succes (200)}:
+
+\begin{lstlisting}[language=JSON]
+{
+  "success": true,
+  "season": "spring",
+  "year": 2026,
+  "trend_colors": [
+    {
+      "hex_code": "#FF6B6B",
+      "name": "Coral",
+      "popularity_score": 0.95,
+      "rank": 1
+    },
+    {
+      "hex_code": "#4ECDC4",
+      "name": "Turquoise",
+      "popularity_score": 0.92,
+      "rank": 2
+    }
+  ]
+}
+\end{lstlisting}
+
+---
+
+\section{Rate Limiting și Throttling}
+
+API implementează rate limiting pentru protecție:
+
+\begin{itemize}
+    \item \textbf{Limită}: 100 requests per minut per API key / IP
+    \item \textbf{Rate-Limit Headers}: Include în răspuns
+    \begin{itemize}
+        \item \texttt{X-RateLimit-Limit}: 100
+        \item \texttt{X-RateLimit-Remaining}: 87
+        \item \texttt{X-RateLimit-Reset}: 1234567890 (Unix timestamp)
+    \end{itemize}
+    \item \textbf{Depășire limită}: HTTP 429 Too Many Requests
+\end{itemize}
+
+---
+
+\section{Coduri HTTP și Erori}
+
+\textbf{Coduri Succes}:
+\begin{table}[h]
+    \centering
+    \begin{tabular}{|l|l|}
+    \hline
+    \textbf{Cod} & \textbf{Semnificație} \\ \hline
+    200 & OK - Succes general \\ \hline
+    201 & Created - Resursă creată (POST/PUT) \\ \hline
+    204 & No Content - Succes fără body (DELETE) \\ \hline
+    \end{tabular}
+\end{table}
+
+\textbf{Coduri Client Error}:
+\begin{table}[h]
+    \centering
+    \begin{tabular}{|l|l|}
+    \hline
+    \textbf{Cod} & \textbf{Semnificație} \\ \hline
+    400 & Bad Request - Invalid input \\ \hline
+    401 & Unauthorized - Missing/invalid token \\ \hline
+    403 & Forbidden - Permission denied \\ \hline
+    404 & Not Found - Resource not found \\ \hline
+    409 & Conflict - Resource already exists \\ \hline
+    413 & Payload Too Large - File exceeds limit \\ \hline
+    429 & Too Many Requests - Rate limit exceeded \\ \hline
+    \end{tabular}
+\end{table}
+
+\textbf{Coduri Server Error}:
+\begin{table}[h]
+    \centering
+    \begin{tabular}{|l|l|}
+    \hline
+    \textbf{Cod} & \textbf{Semnificație} \\ \hline
+    500 & Internal Server Error - General server error \\ \hline
+    503 & Service Unavailable - Backend down/overloaded \\ \hline
+    \end{tabular}
+\end{table}
+
+---
+
+\section{Exemple de Integrazione Client}
+
+\subsection{JavaScript/React Native - Axios}
+
+\begin{lstlisting}[language=JavaScript]
+import axios from 'axios';
+
+const api = axios.create({
+  baseURL: 'https://api.stylegenai.com',
+  timeout: 10000,
+});
+
+// Interceptor pentru JWT
+api.interceptors.request.use(config => {
+  const token = localStorage.getItem('accessToken');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Exemplu: Login
+async function login(email, password) {
+  try {
+    const response = await api.post('/auth/login', { email, password });
+    localStorage.setItem('accessToken', response.data.access_token);
+    return response.data;
+  } catch (error) {
+    console.error('Login failed:', error.response.data);
+  }
+}
+
+// Exemplu: Upload haina
+async function uploadCloth(imageFile, category) {
+  const formData = new FormData();
+  formData.append('image', imageFile);
+  formData.append('category', category);
+
+  try {
+    const response = await api.post('/clothes/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Upload failed:', error.response.data);
+  }
+}
+
+// Exemplu: Get suggestion
+async function getSuggestion(season, occasion) {
+  try {
+    const response = await api.post('/get_suggestion', {
+      season,
+      occasion,
+      limit_combinations: 1,
+    });
+    return response.data.outfit;
+  } catch (error) {
+    console.error('Suggestion generation failed:', error.response.data);
+  }
+}
+\end{lstlisting}
+
+---
+
+\section{Testing cu cURL}
+
+\subsection{Exemplu 1: Login}
+
+\begin{lstlisting}[language=bash]
+curl -X POST https://api.stylegenai.com/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@example.com",
+    "password": "SecurePassword123!"
+  }'
+\end{lstlisting}
+
+\subsection{Exemplu 2: Upload Haina}
+
+\begin{lstlisting}[language=bash]
+curl -X POST https://api.stylegenai.com/clothes/upload \
+  -H "Authorization: Bearer <token>" \
+  -F "image=@/path/to/image.jpg" \
+  -F "category=Top" \
+  -F "style=Casual"
+\end{lstlisting}
+
+\subsection{Exemplu 3: Get Suggestion}
+
+\begin{lstlisting}[language=bash]
+curl -X POST https://api.stylegenai.com/get_suggestion \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "season": "spring",
+    "occasion": "casual"
+  }'
+\end{lstlisting}
+
+---
+
+\section{Changelog API}
+
+\begin{table}[h]
+    \centering
+    \begin{tabular}{|l|l|p{4cm}|}
+    \hline
+    \textbf{Versiune} & \textbf{Data} & \textbf{Modificări} \\ \hline
+    1.0.0 & 2026-05-21 & MVP release cu endpoints core \\ \hline
+    1.1.0 (planned) & 2026-06-15 & Adăugare /web\_outfit endpoint \\ \hline
+    2.0.0 (planned) & 2026-09-01 & Reinforcement learning integration \\ \hline
+    \end{tabular}
+\end{table}
+

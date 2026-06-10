@@ -28,6 +28,79 @@ interface Outfit {
   created_at: string;
 }
 
+const getProfileImageUrl = (imageUrl: string) => {
+  if (imageUrl.startsWith('http')) {
+    return imageUrl;
+  }
+  const cleanPath = imageUrl.startsWith('/') ? imageUrl.substring(1) : imageUrl;
+  return `${API_BASE_URL}/${cleanPath}`;
+};
+
+type ProfileOutfitCardProps = {
+  item: Outfit;
+  onOpen: (id: number) => void;
+  onToggleLike: (id: number) => void;
+  onDelete: (id: number) => void;
+};
+
+const ProfileOutfitCard: React.FC<ProfileOutfitCardProps> = ({ item, onOpen, onToggleLike, onDelete }) => {
+  const fullImageUrl = getProfileImageUrl(item.image_url);
+
+  const handleLikePress = (e: any) => {
+    e.stopPropagation();
+    onToggleLike(item.id);
+  };
+
+  const handleDeletePress = (e: any) => {
+    e.stopPropagation();
+    onDelete(item.id);
+  };
+
+  return (
+    <TouchableOpacity
+      style={styles.outfitCard}
+      onPress={() => onOpen(item.id)}
+      activeOpacity={0.9}
+    >
+      <Image
+        source={{ uri: fullImageUrl }}
+        style={styles.outfitImage}
+        resizeMode="cover"
+        onError={(error) => console.error('[ProfileScreen] Image load error:', error.nativeEvent.error)}
+      />
+      <View style={styles.outfitOverlay}>
+        <View style={styles.outfitInfo}>
+          {item.style_data?.style && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{item.style_data.style}</Text>
+            </View>
+          )}
+          {item.style_data?.season && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{item.style_data.season}</Text>
+            </View>
+          )}
+        </View>
+        <View style={styles.outfitActions}>
+          <TouchableOpacity onPress={handleLikePress} style={styles.actionButton}>
+            <Ionicons
+              name={item.liked ? 'heart' : 'heart-outline'}
+              size={24}
+              color={item.liked ? '#ff4444' : '#fff'}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleDeletePress} style={styles.actionButton}>
+            <Ionicons name="trash-outline" size={24} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      </View>
+      <Text style={styles.outfitDate}>
+        {new Date(item.created_at).toLocaleDateString('ro-RO')}
+      </Text>
+    </TouchableOpacity>
+  );
+};
+
 export default function ProfileScreen() {
   const [savedOutfits, setSavedOutfits] = useState<Outfit[]>([]);
   const [loading, setLoading] = useState(true);
@@ -100,8 +173,27 @@ export default function ProfileScreen() {
           )
         );
       }
-    } catch (error) {
+    } catch {
       Alert.alert('Eroare', 'Nu s-a putut actualiza statusul');
+    }
+  };
+
+  const executeDeleteOutfit = async (outfitId: number) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/outfits/${outfitId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+      if (data.status === 'success') {
+        setSavedOutfits(prev => prev.filter(outfit => outfit.id !== outfitId));
+        Alert.alert('Succes', 'Ținută ștearsă');
+      }
+    } catch {
+      Alert.alert('Eroare', 'Nu s-a putut șterge ținuta');
     }
   };
 
@@ -111,94 +203,25 @@ export default function ProfileScreen() {
       {
         text: 'Șterge',
         style: 'destructive',
-        onPress: async () => {
-          try {
-            const response = await fetch(`${API_BASE_URL}/outfits/${outfitId}`, {
-              method: 'DELETE',
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            });
-
-            const data = await response.json();
-            if (data.status === 'success') {
-              setSavedOutfits(prev => prev.filter(outfit => outfit.id !== outfitId));
-              Alert.alert('Succes', 'Ținută ștearsă');
-            }
-          } catch (error) {
-            Alert.alert('Eroare', 'Nu s-a putut șterge ținuta');
-          }
+        onPress: () => {
+          void executeDeleteOutfit(outfitId);
         },
       },
     ]);
   };
 
-  const renderOutfitCard = ({ item }: { item: Outfit }) => {
-    // Handle image URL - if it already contains http, use as is, otherwise prepend API_BASE_URL
-    let fullImageUrl = item.image_url;
-    
-    if (!item.image_url.startsWith('http')) {
-      // Remove leading slash if present to avoid double slashes
-      const cleanPath = item.image_url.startsWith('/') ? item.image_url.substring(1) : item.image_url;
-      fullImageUrl = `${API_BASE_URL}/${cleanPath}`;
-    }
-    
-    console.log('[ProfileScreen] Rendering outfit:', item.id, 'Image URL:', fullImageUrl);
+  const openOutfit = (outfitId: number) => {
+    router.push(`/(tabs)/outfit-detail?id=${outfitId}`);
+  };
 
+  const renderOutfitCard = ({ item }: { item: Outfit }) => {
     return (
-      <TouchableOpacity 
-        style={styles.outfitCard}
-        onPress={() => router.push(`/(tabs)/outfit-detail?id=${item.id}`)}
-        activeOpacity={0.9}
-      >
-        <Image 
-          source={{ uri: fullImageUrl }} 
-          style={styles.outfitImage} 
-          resizeMode="cover"
-          onError={(error) => console.error('[ProfileScreen] Image load error:', error.nativeEvent.error)}
-        />
-        <View style={styles.outfitOverlay}>
-          <View style={styles.outfitInfo}>
-            {item.style_data?.style && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{item.style_data.style}</Text>
-              </View>
-            )}
-            {item.style_data?.season && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{item.style_data.season}</Text>
-              </View>
-            )}
-          </View>
-          <View style={styles.outfitActions}>
-            <TouchableOpacity 
-              onPress={(e) => {
-                e.stopPropagation();
-                toggleLike(item.id);
-              }} 
-              style={styles.actionButton}
-            >
-              <Ionicons
-                name={item.liked ? 'heart' : 'heart-outline'}
-                size={24}
-                color={item.liked ? '#ff4444' : '#fff'}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity 
-              onPress={(e) => {
-                e.stopPropagation();
-                deleteOutfit(item.id);
-              }} 
-              style={styles.actionButton}
-            >
-              <Ionicons name="trash-outline" size={24} color="#fff" />
-            </TouchableOpacity>
-          </View>
-        </View>
-        <Text style={styles.outfitDate}>
-          {new Date(item.created_at).toLocaleDateString('ro-RO')}
-        </Text>
-      </TouchableOpacity>
+      <ProfileOutfitCard
+        item={item}
+        onOpen={openOutfit}
+        onToggleLike={toggleLike}
+        onDelete={deleteOutfit}
+      />
     );
   };
 
@@ -212,6 +235,40 @@ export default function ProfileScreen() {
       console.error('Logout error:', error);
       Alert.alert('Eroare', 'Nu s-a putut deconecta. Încearcă din nou.');
     }
+  };
+
+  const renderOutfitsSectionContent = () => {
+    if (loading) {
+      return (
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color="#115740" />
+          <Text style={styles.loadingText}>Se încarcă...</Text>
+        </View>
+      );
+    }
+
+    if (savedOutfits.length === 0) {
+      return (
+        <View style={styles.emptyState}>
+          <Ionicons name="shirt-outline" size={64} color="#ccc" />
+          <Text style={styles.emptyTitle}>Nicio ținută salvată</Text>
+          <Text style={styles.emptySubtitle}>
+            Generează și salvează ținute pentru a le vedea aici
+          </Text>
+        </View>
+      );
+    }
+
+    return (
+      <FlatList
+        data={savedOutfits}
+        renderItem={renderOutfitCard}
+        keyExtractor={item => item.id.toString()}
+        numColumns={2}
+        scrollEnabled={false}
+        contentContainerStyle={styles.outfitsList}
+      />
+    );
   };
 
   if (!isAuthenticated) {
@@ -277,30 +334,7 @@ export default function ProfileScreen() {
         {/* Saved Outfits Section */}
         <View style={styles.outfitsSection}>
           <ThemedText type="subtitle" style={styles.sectionTitle}>Ținutele mele salvate</ThemedText>
-
-          {loading ? (
-            <View style={styles.centered}>
-              <ActivityIndicator size="large" color="#115740" />
-              <Text style={styles.loadingText}>Se încarcă...</Text>
-            </View>
-          ) : savedOutfits.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Ionicons name="shirt-outline" size={64} color="#ccc" />
-              <Text style={styles.emptyTitle}>Nicio ținută salvată</Text>
-              <Text style={styles.emptySubtitle}>
-                Generează și salvează ținute pentru a le vedea aici
-              </Text>
-            </View>
-          ) : (
-            <FlatList
-              data={savedOutfits}
-              renderItem={renderOutfitCard}
-              keyExtractor={item => item.id.toString()}
-              numColumns={2}
-              scrollEnabled={false}
-              contentContainerStyle={styles.outfitsList}
-            />
-          )}
+          {renderOutfitsSectionContent()}
         </View>
       </ScrollView>
     </ThemedView>

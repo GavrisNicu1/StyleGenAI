@@ -19,6 +19,64 @@ NEUTRALS = {"#000000", "#ffffff", "#f5f5f5", "#808080", "#aaaaaa", "#cccccc", "#
 ACCENT_LIBRARY = ["#ff3b30", "#ff9500", "#ffcc00", "#34c759", "#007aff", "#af52de"]  # iOS palette inspired accents
 
 
+def _contrast_score(distinct_pairs: int) -> float:
+    if 1 <= distinct_pairs <= 2:
+        return 0.2
+    if distinct_pairs == 3:
+        return 0.1
+    return 0.05
+
+
+def _accent_mix_score(neutral_count: int) -> float:
+    if neutral_count == 2:
+        return 0.2
+    if neutral_count == 1:
+        return 0.15
+    if neutral_count == 3:
+        return 0.10
+    return 0.12
+
+
+def _repetition_penalty(unique_colors: int) -> float:
+    if unique_colors == 3:
+        return 0.0
+    if unique_colors == 2:
+        return 0.05
+    return 0.10
+
+
+def _diversity_bonus(unique_colors: int, avg_d: float) -> float:
+    if unique_colors == 3 and avg_d < 0.55:
+        return 0.2
+    if unique_colors == 3:
+        return 0.12
+    return 0.05
+
+
+def _style_modifier(style: Optional[str], neutral_count: int, distinct_pairs: int) -> float:
+    if not style:
+        return 0.0
+    st = style.lower()
+    if st == "elegant" and neutral_count >= 2:
+        return 0.03
+    if st == "sport" and distinct_pairs >= 2:
+        return 0.02
+    if st == "casual" and neutral_count in (1, 2):
+        return 0.02
+    return 0.0
+
+
+def _season_modifier(season: Optional[str], neutral_count: int, distinct_pairs: int) -> float:
+    if not season:
+        return 0.0
+    se = season.lower()
+    if se.startswith("iarna") and neutral_count >= 2:
+        return 0.02
+    if se.startswith("vara") and neutral_count == 1 and distinct_pairs >= 2:
+        return 0.02
+    return 0.0
+
+
 def _hex_to_rgb(h: str) -> Tuple[int, int, int]:
     h = h.strip().lstrip('#')
     if len(h) == 3:
@@ -69,49 +127,23 @@ def calculate_outfit_score(hex_colors: List[str], *, season: Optional[str] = Non
 
     # Contrast balance: at least one pair reasonably distinct (>0.25) and not all extreme
     distinct_pairs = sum(d > 0.25 for d in (d_tb, d_bs, d_ts))
-    contrast = 0.2 if 1 <= distinct_pairs <= 2 else 0.1 if distinct_pairs == 3 else 0.05
+    contrast = _contrast_score(distinct_pairs)
 
     # Accent/neutral mix: prefer 1 accent + 2 neutrals or 2 neutrals + 1 near-neutral
     neutral_flags = [c in NEUTRALS for c in (top_c, bottom_c, shoes_c)]
     neutral_count = sum(neutral_flags)
-    if neutral_count == 2:
-        accent_mix = 0.2
-    elif neutral_count == 1:
-        accent_mix = 0.15
-    elif neutral_count == 3:
-        accent_mix = 0.10  # all neutral slightly lower
-    else:
-        accent_mix = 0.12  # all strong colors risk clash
+    accent_mix = _accent_mix_score(neutral_count)
 
     # Repetition penalty: identical hex among pieces
     unique_colors = len(set(hex_colors))
-    if unique_colors == 3:
-        repetition_penalty = 0.0
-    elif unique_colors == 2:
-        repetition_penalty = 0.05
-    else:
-        repetition_penalty = 0.10
+    repetition_penalty = _repetition_penalty(unique_colors)
 
     # Diversity bonus: reward 3 distinct but not wildly clashing
-    diversity_bonus = 0.2 if unique_colors == 3 and avg_d < 0.55 else 0.12 if unique_colors == 3 else 0.05
+    diversity_bonus = _diversity_bonus(unique_colors, avg_d)
 
     # Style/season modifiers (very light influence so base score dominates)
-    style_mod = 0.0
-    season_mod = 0.0
-    if style:
-        st = style.lower()
-        if st == "elegant" and neutral_count >= 2:
-            style_mod += 0.03
-        elif st == "sport" and distinct_pairs >= 2:
-            style_mod += 0.02
-        elif st == "casual" and neutral_count in (1, 2):
-            style_mod += 0.02
-    if season:
-        se = season.lower()
-        if se.startswith("iarna") and neutral_count >= 2:
-            season_mod += 0.02
-        if se.startswith("vara") and neutral_count == 1 and distinct_pairs >= 2:
-            season_mod += 0.02
+    style_mod = _style_modifier(style, neutral_count, distinct_pairs)
+    season_mod = _season_modifier(season, neutral_count, distinct_pairs)
 
     score = harmony + contrast + accent_mix + diversity_bonus - repetition_penalty + style_mod + season_mod
     score = max(0.0, min(1.0, score))
@@ -121,7 +153,7 @@ def calculate_outfit_score(hex_colors: List[str], *, season: Optional[str] = Non
     if neutral_count >= 2 and unique_colors <= 2:
         recommended_accent = _closest_accent([c for c, nf in zip((top_c, bottom_c, shoes_c), neutral_flags) if nf])
     elif harmony < 0.15 and distinct_pairs == 0:
-        recommended_accent = _closest_accent(list({top_c, bottom_c, shoes_c}))
+        recommended_accent = _closest_accent([top_c, bottom_c, shoes_c])
 
     analysis = {
         "harmony": round(harmony, 3),

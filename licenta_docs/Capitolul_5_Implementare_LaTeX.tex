@@ -1,10 +1,312 @@
-\chapter{Proiectare de Detaliu și Implementare}
-\label{cap:implementare}
+\chapter{Proiectare și Implementare}
 
-Acest capitol documentează procesul de dezvoltare a aplicației, detaliind structura codului sursă, modulele implementate și interacțiunile dintre componente. Scopul este de a oferi o imagine clară asupra modului în care specificațiile teoretice descrise anterior au fost transpuse într-un produs software funcțional.
+Capitolul de față documentează implementarea aplicației StyleGenAI în forma sa actuală de MVP funcțional. Sunt prezentate arhitectura sistemului, cazurile de utilizare, modelarea datelor, fluxurile de execuție și modulele backend care susțin procesarea și recomandarea vestimentară. Conținutul este formulat în acord cu comportamentul real al aplicației și cu structura efectivă a codului.
 
-\input{Capitolul_5_Componente/5.1_Schema_Generala}
+\section{Arhitectura generală a sistemului}
 
-\input{Capitolul_5_Componente/5.2_Implementare_Backend}
+Pentru dezvoltarea StyleGenAI a fost adoptată o arhitectură de tip Client-Server, construită în jurul unui API REST. Separarea clară dintre client și backend permite evoluția independentă a componentelor, reduce cuplarea și simplifică testarea.
 
-\input{Capitolul_5_Componente/5.3_Implementare_Frontend}
+Alegerea este justificată tehnic. Operațiile de procesare imagine și evaluare a combinațiilor vestimentare implică cost computațional variabil. Mutarea acestora pe server menține clientul responsiv și permite control mai bun asupra logicii de business, a dependențelor și a monitorizării.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{cap5d1.png}
+    \caption{Arhitectura generală a sistemului StyleGenAI}
+    \label{fig:arhitectura_sistemului}
+\end{figure}
+
+\subsection{Clientul (Frontend)}
+
+Nivelul client este implementat în React Native cu Expo și este responsabil de colectarea inputului utilizatorului, afișarea rezultatelor și orchestrarea apelurilor către backend.
+
+Din punct de vedere tehnic, clientul folosește:
+\begin{itemize}
+    \item \textbf{Expo Router} pentru organizarea navigării pe bază de fișiere;
+    \item \textbf{AuthContext} pentru managementul stării de autentificare;
+    \item \textbf{AsyncStorage} pentru persistența locală a token-ului;
+    \item apeluri către backend prin \texttt{fetch} și, în unele zone, prin client Axios.
+\end{itemize}
+
+În fluxul de generare, clientul transmite imagini + categorii prin \texttt{multipart/form-data} către endpoint-ul de recomandare.
+
+\subsection{Serverul (Backend)}
+
+Backend-ul este implementat în Python cu Flask și reprezintă nucleul logic al sistemului. Acesta expune endpoint-uri pentru autentificare, recomandare, persistență și administrare.
+
+Organizarea modulară include:
+\begin{itemize}
+    \item \textbf{\texttt{app.py}}: stratul de expunere HTTP și orchestrarea fluxurilor;
+    \item \textbf{\texttt{auth.py}}: înregistrare, login, validare JWT, control roluri;
+    \item \textbf{\texttt{database.py}}: acces la date și compatibilitate SQLite/SQL Server;
+    \item \textbf{\texttt{outfits.py}}: CRUD pentru ținutele salvate;
+    \item \textbf{\texttt{styling\_engine/generator.py}}: generare și selecție outfit;
+    \item \textbf{\texttt{styling\_engine/rules.py}}: funcție de scor și analiză componente;
+    \item \textbf{\texttt{ai\_metrics.py}}: telemetrie și agregări pentru administrare.
+\end{itemize}
+
+În implementarea actuală, procesarea upload-ului pentru recomandare este realizată în \texttt{/get\_suggestion} (în \texttt{app.py}), nu în \texttt{outfits.py}.
+
+\subsection{Interacțiunea și Protocolul de Comunicare}
+
+Comunicarea client-server se face prin HTTP în dezvoltare, iar în producție prin HTTPS configurat la nivel de infrastructură. Datele structurale sunt transmise în JSON, iar fișierele binare prin \texttt{multipart/form-data}.
+
+Endpoint-urile protejate impun token JWT în antet:
+\begin{verbatim}
+Authorization: Bearer <access_token>
+\end{verbatim}
+
+Backend-ul este \textit{stateless}: nu păstrează sesiune în memorie între cereri, iar autorizarea este evaluată la fiecare apel.
+
+\subsection{Decizii de proiectare și compromisuri tehnice}
+
+Pentru MVP au fost asumate deliberat câteva compromisuri:
+\begin{itemize}
+    \item clasificarea categoriei pieselor rămâne manuală;
+    \item funcția de scor este euristică și explicabilă;
+    \item procesarea vizuală prioritizează latența redusă și robustețea;
+    \item întărirea avansată de securitate este tratată ca etapă de deploy.
+\end{itemize}
+
+Aceste decizii oferă un echilibru bun între fezabilitate, claritate algoritmică și timp de livrare.
+
+\section{Cazurile de utilizare}
+
+Secțiunea descrie interacțiunile principale dintre utilizator și sistem, împreună cu scenariile de eroare relevante pentru implementarea curentă.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{cap5d2.png}
+    \caption{Diagrama cazurilor de utilizare pentru sistemul StyleGenAI}
+    \label{fig:use_cases}
+\end{figure}
+
+\subsection*{UC-01: Creare Cont și Autentificare}
+Utilizatorul își creează cont prin \texttt{POST /auth/register} și se autentifică prin \texttt{POST /auth/login}. Identificatorul folosit este email-ul.
+
+\textbf{Flux nominal}:
+\begin{itemize}
+    \item utilizatorul introduce email + parolă;
+    \item serverul validează datele;
+    \item parola este hash-uită cu \texttt{bcrypt};
+    \item utilizatorul este creat în \texttt{users};
+    \item la login se emite token JWT.
+\end{itemize}
+
+\textbf{Erori uzuale}: email existent, date lipsă, credențiale invalide.
+
+\subsection*{UC-02: Gestionarea Garderobei Digitale}
+Utilizatorul selectează imagini și categorii, iar cererea este trimisă la \texttt{POST /get\_suggestion}. Sistemul procesează imaginile și generează o recomandare.
+
+\textbf{Flux nominal}:
+\begin{itemize}
+    \item clientul construiește payload \texttt{multipart/form-data};
+    \item serverul validează fișierele și categoriile;
+    \item imaginile sunt salvate în \texttt{uploads/};
+    \item se extrag atributele de culoare;
+    \item motorul returnează ținuta candidată.
+\end{itemize}
+
+\textbf{Observație}: în MVP, \texttt{/get\_suggestion} combină upload + generare.
+
+\subsection*{UC-03: Generarea de Ținute}
+Generarea se face prin \texttt{POST /get\_suggestion}. Motorul grupează piesele pe categorii, calculează combinațiile și selectează rezultatul cu scor maxim.
+
+\textbf{Flux nominal}:
+\begin{itemize}
+    \item validare coerență \texttt{files/categories};
+    \item aplicare filtre contextuale (stil, sezon, gen, siluetă);
+    \item produs cartezian al combinațiilor;
+    \item scorare în \texttt{rules.py};
+    \item bonus trend și selecția rezultatului final.
+\end{itemize}
+
+\textbf{Condiție de eligibilitate}: este necesar un minim de piese per categorie pentru generare robustă.
+
+\subsection*{UC-04: Vizualizarea Articolelor și a Profilului}
+După salvare, utilizatorul consultă istoricul prin \texttt{GET /outfits/history}, poate vedea detalii, marca like și șterge ținute.
+
+\textbf{Endpoint-uri relevante}: \texttt{GET /outfits/history}, \texttt{GET /outfits/<id>}, \texttt{POST /outfits/<id>/like}, \texttt{DELETE /outfits/<id>}.
+
+\textbf{Erori uzuale}: token invalid/expirat, acces neautorizat, resursă inexistentă.
+
+\subsection*{UC-05: Monitorizare și Administrare Sistem}
+Utilizatorii cu rol \texttt{admin} accesează date agregate prin \texttt{/admin/dashboard}, \texttt{/admin/users}, \texttt{/admin/ai-metrics}.
+
+\textbf{Flux nominal}:
+\begin{itemize}
+    \item clientul trimite JWT;
+    \item serverul validează rolul admin;
+    \item datele sunt agregate și returnate pentru dashboard.
+\end{itemize}
+
+\textbf{Erori uzuale}: lipsă drepturi (403), token invalid, lipsă date.
+
+\subsection{Reguli de validare și scenarii de eroare}
+
+Validarea este aplicată pe trei straturi:
+\begin{itemize}
+    \item \textbf{intrare}: câmpuri obligatorii, MIME, consistență payload;
+    \item \textbf{securitate}: verificare JWT pentru rute protejate;
+    \item \textbf{business}: precondiții de inventar și ownership resursă.
+\end{itemize}
+
+Această structură produce erori explicite și ajută debugging-ul pe frontend și backend.
+
+\section{Modelarea bazei de date și persistența informațiilor}
+
+Persistența este centralizată în \texttt{database.py}, cu suport pentru SQLite și SQL Server. Modelul urmărește simplitatea operării în MVP și trasabilitatea datelor pentru analiză ulterioară.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{cap5d3.png}
+    \caption{Diagrama Entitate-Relație (ERD) a bazei de date StyleGenAI}
+    \label{fig:erd_database}
+\end{figure}
+
+\subsection*{Tabela \texttt{users}}
+Gestionează identitatea și autorizarea:
+\begin{itemize}
+    \item \texttt{id} (PK), \texttt{email} unic, \texttt{password\_hash};
+    \item \texttt{role} (user/admin);
+    \item câmpuri temporale \texttt{created\_at}, \texttt{updated\_at}.
+\end{itemize}
+
+\subsection*{Tabela \texttt{outfits}}
+Stochează ținutele salvate ale utilizatorilor:
+\begin{itemize}
+    \item relație \texttt{users(1) -> outfits(N)} prin \texttt{user\_id};
+    \item \texttt{image\_url} pentru referința vizuală;
+    \item \texttt{style\_data} JSON serializat;
+    \item \texttt{liked} și \texttt{created\_at}.
+\end{itemize}
+
+\subsection*{Tabela \texttt{ai\_metrics}}
+Jurnal operațional pentru cererile de generare:
+\begin{itemize}
+    \item context (stil, sezon, gen);
+    \item \texttt{processing\_time};
+    \item \texttt{success}/\texttt{error};
+    \item mesaj eroare pentru cazurile eșuate.
+\end{itemize}
+
+\subsection*{Compatibilitate SQLite și SQL Server}
+
+Diferențele de sintaxă SQL sunt tratate în stratul de acces la date (de exemplu timeline, limitare rezultate, inserare cu returnare ID), astfel încât contractul API să rămână constant.
+
+\subsection{Strategia de persistență și consistența datelor}
+
+În MVP, persistarea este făcută la nivel de ținută finală, nu la nivel de piesă individuală separată. Această strategie simplifică schema, dar păstrează flexibilitate prin \texttt{style\_data}. În același timp, operațiile de update/delete verifică ownership-ul pentru a evita accesul la datele altui utilizator.
+
+\section{Diagrama de secvență și fluxul de execuție}
+
+Diagrama de secvență descrie fluxul complet: autentificare, generare recomandare, persistență opțională și consultare istoric.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{cap5d4.png}
+    \caption{Diagrama de secvență a fluxului de asortare vestimentară}
+    \label{fig:sequence_diagram}
+\end{figure}
+
+Fluxul principal:
+\begin{enumerate}
+    \item autentificare și persistență token;
+    \item trimitere imagini + categorii la \texttt{/get\_suggestion};
+    \item procesare backend și extragere atribute;
+    \item generare + scorare combinații;
+    \item returnare rezultat și salvare opțională în istoric.
+\end{enumerate}
+
+\subsection{Fluxuri alternative și cazuri de eșec}
+
+Implementarea tratează explicit:
+\begin{itemize}
+    \item token lipsă/invalid;
+    \item payload incomplet sau inconsistență \texttt{files/categories};
+    \item tipuri de fișier neacceptate;
+    \item inventar insuficient pentru generare;
+    \item eșec la persistență.
+\end{itemize}
+
+Răspunsurile HTTP și mesajele descriptive permit tratarea robustă a erorilor în client.
+
+\section{Module și Funcționalități}
+
+Secțiunea prezintă modulele cheie ale implementării din perspectiva responsabilităților tehnice.
+
+\subsection{Modulul de Autentificare}
+
+\texttt{auth.py} gestionează registrare/login, verificare token, roluri și resetare parolă. Parolele sunt hash-uite, token-urile sunt validate la fiecare rută protejată, iar accesul administrativ este separat logic.
+
+\subsection{Modulul Garderobei Digitale}
+
+\texttt{outfits.py} acoperă operațiile de persistență pentru istoricul ținutelor: save, listare, detaliu, like/unlike, delete. Resursele sunt accesibile strict utilizatorului proprietar.
+
+\subsection{Modulul de Procesare a Imaginilor}
+
+Procesarea rulează pe backend în fluxul de generare. Etapele principale sunt validarea inputului, opțional eliminare fundal, extragere culoare dominantă și pregătirea datelor pentru motorul de scor.
+
+\subsection{Modulul de Styling -- Motorul de Recomandare}
+
+\texttt{generator.py} și \texttt{rules.py} implementează logica de asortare:
+\begin{itemize}
+    \item grupare piese pe categorii;
+    \item generare combinații prin produs cartezian;
+    \item calcul scor compozit;
+    \item bonus de trend;
+    \item selecție maxim și returnare analiză.
+\end{itemize}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.92\textwidth]{cap5d5.png}
+    \caption{Schema logică a motorului de recomandare StyleGenAI}
+    \label{fig:schema_motor}
+\end{figure}
+
+\subsection*{Specificații API (Rezumat)}
+
+Toate rutele protejate necesită:
+\begin{verbatim}
+Authorization: Bearer <access_token>
+Content-Type: application/json
+\end{verbatim}
+
+Endpoint-uri cheie:
+\begin{itemize}
+    \item \texttt{POST /auth/register}
+    \item \texttt{POST /auth/login}
+    \item \texttt{POST /auth/request-password-reset}
+    \item \texttt{GET /auth/validate-reset-token}
+    \item \texttt{POST /auth/reset-password}
+    \item \texttt{POST /get\_suggestion}
+    \item \texttt{POST /web\_outfit}
+    \item \texttt{POST /outfits/save}
+    \item \texttt{GET /outfits/history}
+    \item \texttt{POST /outfits/<id>/like}
+    \item \texttt{DELETE /outfits/<id>}
+    \item \texttt{GET /admin/dashboard}
+    \item \texttt{GET /admin/ai-metrics}
+\end{itemize}
+
+\subsection{Observabilitate, telemetrie și administrare}
+
+Telemetria din \texttt{ai\_metrics} permite evaluarea comportamentului algoritmului în utilizare reală: rată de succes, timpi medii, distribuții și erori frecvente. Aceste date sunt expuse în endpoint-uri admin și susțin deciziile de optimizare.
+
+\subsection{Limitări curente și datorie tehnică}
+
+Limitări cunoscute în MVP:
+\begin{itemize}
+    \item persistare la nivel de outfit, fără entitate separată pentru piese individuale;
+    \item strat frontend de networking încă mixt (Axios + \texttt{fetch});
+    \item funcție de scor bazată pe euristici fixe;
+    \item necesitatea consolidării suportului multi-DB pe edge cases.
+\end{itemize}
+
+Aceste aspecte definesc backlog-ul tehnic pentru iterațiile următoare.
+
+\section*{Concluzia Capitolului 5}
+
+Capitolul a prezentat implementarea practică a sistemului StyleGenAI, cu accent pe arhitectura client-server, fluxurile de generare, modelul de persistență și modulele backend esențiale. Soluția este funcțională ca MVP și oferă capabilități complete de autentificare, recomandare, persistare și monitorizare.
+
+Structura modulară permite extinderea controlată a aplicației: rafinarea modelului de date, consolidarea stratului API, îmbunătățirea scoring-ului și creșterea robusteții operaționale pe baza telemetriei colectate.

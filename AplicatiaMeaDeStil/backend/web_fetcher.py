@@ -21,8 +21,16 @@ load_dotenv(env_path)
 API_KEY = os.getenv("GOOGLE_CSE_API_KEY")
 CSE_ID = os.getenv("GOOGLE_CSE_ID")
 
+ABOUTYOU_HOME_URL = "https://www.aboutyou.ro/"
+TOMMY_HILFIGER_BRAND = "Tommy Hilfiger"
+ABOUTYOU_DOMAIN = "aboutyou.ro"
+ANSWEAR_DOMAIN = "answear.ro"
+FASHIONDAYS_DOMAIN = "fashiondays.ro"
+EPANTOFI_DOMAIN = "epantofi.ro"
+HTML_SUFFIX = ".html"
+
 # --- BRANDURI ---
-PREMIUM_BRANDS = ["Calvin Klein", "Tommy Hilfiger", "Guess", "Ralph Lauren", "Massimo Dutti", "Hugo Boss", "Gant", "Lacoste"]
+PREMIUM_BRANDS = ["Calvin Klein", TOMMY_HILFIGER_BRAND, "Guess", "Ralph Lauren", "Massimo Dutti", "Hugo Boss", "Gant", "Lacoste"]
 SPORT_BRANDS = ["Nike", "Adidas", "Jordan", "New Balance", "Puma", "Under Armour", "Converse"]
 CASUAL_BRANDS = ["Zara", "H&M", "Bershka", "Pull&Bear", "Levis", "Jack & Jones", "Mango Man"]
 # --- MAPARE STIL -> SITE-URI ---
@@ -31,18 +39,18 @@ STYLE_SITE_MAP = {
         {"name": "Massimo Dutti", "url": "https://www.massimodutti.com/ro/"},
         {"name": "Seroussi", "url": "https://seroussi.ro/"},
         {"name": "Hugo Boss", "url": "https://www.hugoboss.com/ro/"},
-        {"name": "Tommy Hilfiger", "url": "https://ro.tommy.com/"},
-        {"name": "AboutYou", "url": "https://www.aboutyou.ro/"},
+        {"name": TOMMY_HILFIGER_BRAND, "url": "https://ro.tommy.com/"},
+        {"name": "AboutYou", "url": ABOUTYOU_HOME_URL},
     ],
     "sport": [
         {"name": "Nike", "url": "https://www.nike.com/ro/"},
         {"name": "Adidas", "url": "https://www.adidas.ro/"},
         {"name": "Under Armour", "url": "https://www.underarmour.ro/"},
-        {"name": "AboutYou", "url": "https://www.aboutyou.ro/"},
+        {"name": "AboutYou", "url": ABOUTYOU_HOME_URL},
     ],
     "casual": [
-        {"name": "AboutYou", "url": "https://www.aboutyou.ro/"},
-        {"name": "Tommy Hilfiger", "url": "https://ro.tommy.com/"},
+        {"name": "AboutYou", "url": ABOUTYOU_HOME_URL},
+        {"name": TOMMY_HILFIGER_BRAND, "url": "https://ro.tommy.com/"},
         {"name": "Zara", "url": "https://www.zara.com/ro/"},
         {"name": "Ralph Lauren", "url": "https://www.ralphlauren.eu/ro/"},
     ],
@@ -86,25 +94,25 @@ MOCK_WEB_OUTFIT = {
         "path": "https://images.unsplash.com/photo-1487222477894-8943e31ef7b2?q=80&w=800",
         "title": "Geacă Piele Biker (Demo)",
         "source_url": "https://www.aboutyou.ro/p/jack-jones/geaca-de-primavara-toamna-rocky-4363435", 
-        "source_domain": "aboutyou.ro"
+        "source_domain": ABOUTYOU_DOMAIN
     },
     "top": {
         "path": "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?q=80&w=800",
         "title": "Tricou Basic Navy (Demo)",
         "source_url": "https://answear.ro/p/tommy-jeans-tricou-din-bumbac-culoarea-albastru-marin-neted-1209285.html",
-        "source_domain": "answear.ro"
+        "source_domain": ANSWEAR_DOMAIN
     },
     "bottom": {
         "path": "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?q=80&w=800",
         "title": "Jeans Regular Fit (Demo)",
         "source_url": "https://www.fashiondays.ro/p/blugi-drepti-cu-aspect-decolorat-501-barbati-levis-p5234213-2/",
-        "source_domain": "fashiondays.ro"
+        "source_domain": FASHIONDAYS_DOMAIN
     },
     "shoes": {
         "path": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=800",
         "title": "Sneakers Sport (Demo)",
         "source_url": "https://www.epantofi.ro/p/sneakers-new-balance-gm500-navy.html",
-        "source_domain": "epantofi.ro"
+        "source_domain": EPANTOFI_DOMAIN
     }
 }
 
@@ -224,25 +232,25 @@ def _format_search_entry(template: str, query: str, domain: str) -> Dict[str, st
     }
 
 
-def _retailer_epantofi(query: str, category_key: str, gender_target_value: str) -> Optional[Dict[str, str]]:
+def _retailer_epantofi(query: str, category_key: str, _gender_target_value: str) -> Optional[Dict[str, str]]:
     if category_key != "shoes":
         return None
-    return _format_search_entry("https://www.epantofi.ro/search?query={query}", query, "epantofi.ro")
+    return _format_search_entry("https://www.epantofi.ro/search?query={query}", query, EPANTOFI_DOMAIN)
 
 
-def _retailer_aboutyou(query: str, category_key: str, gender_target_value: str) -> Optional[Dict[str, str]]:
-    return _format_search_entry("https://www.aboutyou.ro/search?q={query}", query, "aboutyou.ro")
+def _retailer_aboutyou(query: str, _category_key: str, _gender_target_value: str) -> Optional[Dict[str, str]]:
+    return _format_search_entry("https://www.aboutyou.ro/search?q={query}", query, ABOUTYOU_DOMAIN)
 
 
-def _retailer_answear(query: str, category_key: str, gender_target_value: str) -> Optional[Dict[str, str]]:
-    return _format_search_entry("https://answear.ro/s?q={query}", query, "answear.ro")
+def _retailer_answear(query: str, _category_key: str, _gender_target_value: str) -> Optional[Dict[str, str]]:
+    return _format_search_entry("https://answear.ro/s?q={query}", query, ANSWEAR_DOMAIN)
 
 
-def _retailer_fashiondays(query: str, category_key: str, gender_target_value: str) -> Optional[Dict[str, str]]:
-    return _format_search_entry("https://www.fashiondays.ro/search?query={query}", query, "fashiondays.ro")
+def _retailer_fashiondays(query: str, _category_key: str, _gender_target_value: str) -> Optional[Dict[str, str]]:
+    return _format_search_entry("https://www.fashiondays.ro/search?query={query}", query, FASHIONDAYS_DOMAIN)
 
 
-def _retailer_modivo(query: str, category_key: str, gender_target_value: str) -> Optional[Dict[str, str]]:
+def _retailer_modivo(query: str, _category_key: str, _gender_target_value: str) -> Optional[Dict[str, str]]:
     return _format_search_entry("https://www.modivo.ro/search?query={query}", query, "modivo.ro")
 
 
@@ -286,7 +294,7 @@ def _aboutyou_category_listing(category_key: str, color_value: str, gender_targe
         url = base
     return {
         "source_url": url,
-        "source_domain": "aboutyou.ro"
+        "source_domain": ABOUTYOU_DOMAIN
     }
 
 
@@ -296,7 +304,7 @@ def _epantofi_category_listing(category_key: str, color_value: str, gender_targe
         return None
     return {
         "source_url": base,
-        "source_domain": "epantofi.ro"
+        "source_domain": EPANTOFI_DOMAIN
     }
 
 
@@ -373,7 +381,7 @@ def _validate_page_content(url: str) -> bool:
             return False
 
         return True
-    except Exception as e:
+    except Exception:
         # Orice eroare de rețea = link invalid
         return False
 
@@ -389,14 +397,37 @@ def _is_strict_product_url(url: str, gender_target: str) -> bool:
         if any(x in url for x in ["barbati", "men", "baieti", "masculin"]): return False
 
     # Regex Validare per Magazin
-    if "answear.ro" in url: return ".html" in url
-    if "fashiondays.ro" in url: return "/p/" in url
-    if "epantofi.ro" in url or "modivo.ro" in url: return ".html" in url
-    if "zalando.ro" in url: return ".html" in url
-    if "aboutyou.ro" in url: return (re.search(r'\d+$', url) is not None) or "/p/" in url
+    if ANSWEAR_DOMAIN in url: return HTML_SUFFIX in url
+    if FASHIONDAYS_DOMAIN in url: return "/p/" in url
+    if EPANTOFI_DOMAIN in url or "modivo.ro" in url: return HTML_SUFFIX in url
+    if "zalando.ro" in url: return HTML_SUFFIX in url
+    if ABOUTYOU_DOMAIN in url: return (re.search(r'\d+$', url) is not None) or "/p/" in url
 
     if len(url.split('/')) > 4: return True
     return False
+
+
+def _extract_valid_search_item(item: dict, gender_target: str) -> Optional[Dict[str, str]]:
+    link = item.get('link')
+    ctx_link = item.get('image', {}).get('contextLink', link)
+    title = item.get('title', 'Produs Fashion')
+    domain = item.get('displayLink', 'magazin.ro')
+
+    if not _is_strict_product_url(ctx_link, gender_target):
+        return None
+    if not _validate_page_content(ctx_link):
+        return None
+
+    clean_title = title.split('|')[0].split('-')[0].strip()
+    if len(clean_title) > 35:
+        clean_title = clean_title[:32] + "..."
+
+    return {
+        "path": link,
+        "source_url": ctx_link,
+        "source_domain": domain,
+        "title": clean_title,
+    }
 
 def _search_google_cse(query: str, gender_target: str, num_results=3) -> List[dict]:
     if not API_KEY or not CSE_ID: return []
@@ -413,35 +444,19 @@ def _search_google_cse(query: str, gender_target: str, num_results=3) -> List[di
 
     try:
         response = requests.get(url, params=params, timeout=10)
-        if response.status_code != 200: return []
+        if response.status_code != 200:
+            return []
 
         data = response.json()
         valid_results = []
-        
-        if 'items' in data:
-            for item in data['items']:
-                link = item.get('link') 
-                ctx_link = item.get('image', {}).get('contextLink', link)
-                title = item.get('title', 'Produs Fashion')
-                domain = item.get('displayLink', 'magazin.ro')
 
-                # 1. Filtru URL (Static) - Rapid
-                if not _is_strict_product_url(ctx_link, gender_target): continue
-
-                # 2. Filtru Conținut (Dinamic) - Mai lent dar SIGUR
-                # Verificăm efectiv pagina
-                if not _validate_page_content(ctx_link):
-                    continue
-
-                clean_title = title.split('|')[0].split('-')[0].strip()
-                if len(clean_title) > 35: clean_title = clean_title[:32] + "..."
-                
-                valid_results.append({
-                    "path": link, "source_url": ctx_link,
-                    "source_domain": domain, "title": clean_title
-                })
-                
-                if len(valid_results) >= num_results: break
+        for item in data.get('items', []):
+            parsed = _extract_valid_search_item(item, gender_target)
+            if not parsed:
+                continue
+            valid_results.append(parsed)
+            if len(valid_results) >= num_results:
+                break
         
         return valid_results
 
@@ -458,6 +473,57 @@ def _select_trend_color(trend_colors: Optional[List[str]]) -> str:
     return DEFAULT_COLOR_FALLBACK
 
 
+def _resolve_gender_context(gender: str) -> tuple[str, str, str]:
+    g_lower = gender.lower()
+    if g_lower in ['men', 'barbati', 'masculin', 'bărbati']:
+        return "men", "barbati", "-dama -femei -women -dress -fusta -rochie -skirt -kids"
+    if g_lower in ['women', 'femei', 'feminin']:
+        return "women", "dama", "-barbati -men -masculin -kids"
+    if g_lower in ['copii', 'kids']:
+        return "kids", "copii", ""
+    return "unisex", "", ""
+
+
+def _pick_brand_for_style(style_filter: str) -> str:
+    style = style_filter.lower()
+    if "elegant" in style or "smart" in style:
+        return random.choice(PREMIUM_BRANDS)
+    if "sport" in style or "street" in style:
+        return random.choice(SPORT_BRANDS)
+    return random.choice(CASUAL_BRANDS)
+
+
+def _resolve_category_outfit(
+    category_key: str,
+    query_string: str,
+    gender_target: str,
+    color_for_cat: str,
+    style: str,
+    selected_brand: str,
+    negative_terms: str,
+    buy_trigger: str,
+) -> Optional[Dict[str, str]]:
+    retailer_listings = _build_retailer_listings(category_key, query_string, gender_target, color_for_cat, style)
+    if retailer_listings:
+        listing_payload = _compose_listing_payload(category_key, retailer_listings, color_for_cat)
+        if listing_payload:
+            return listing_payload
+
+    fallback_query = f"{query_string} {selected_brand} {buy_trigger} {negative_terms}".strip()
+    results = _search_google_cse(fallback_query, gender_target)
+    if results:
+        main_item = results[0]
+        main_item['category'] = category_key
+        main_item['alternatives'] = results[1:] if len(results) > 1 else []
+        return main_item
+
+    if category_key in MOCK_WEB_OUTFIT:
+        mock = MOCK_WEB_OUTFIT[category_key].copy()
+        mock['category'] = category_key
+        return mock
+    return None
+
+
 def get_web_outfit(
     style_filter: str,
     season: str,
@@ -465,29 +531,9 @@ def get_web_outfit(
     trend_colors: Optional[List[str]] = None,
     piece_colors: Optional[Dict[str, str]] = None,
 ) -> Dict[str, dict]:
-    gender_target = "unisex"
-    gender_terms = ""
-    negative_terms = ""
-    
-    g_lower = gender.lower()
-    if g_lower in ['men', 'barbati', 'masculin', 'bărbati']:
-        gender_target = "men"
-        gender_terms = "barbati" 
-        negative_terms = "-dama -femei -women -dress -fusta -rochie -skirt -kids"
-    elif g_lower in ['women', 'femei', 'feminin']:
-        gender_target = "women"
-        gender_terms = "dama"
-        negative_terms = "-barbati -men -masculin -kids"
-    elif g_lower in ['copii', 'kids']:
-        gender_target = "kids"
-        gender_terms = "copii"
-        negative_terms = ""
-
+    gender_target, gender_terms, negative_terms = _resolve_gender_context(gender)
     style = style_filter.lower()
-    selected_brand = ""
-    if "elegant" in style or "smart" in style: selected_brand = random.choice(PREMIUM_BRANDS)
-    elif "sport" in style or "street" in style: selected_brand = random.choice(SPORT_BRANDS)
-    else: selected_brand = random.choice(CASUAL_BRANDS)
+    selected_brand = _pick_brand_for_style(style_filter)
 
     buy_trigger = "pret ron" 
     
@@ -501,28 +547,20 @@ def get_web_outfit(
     color_by_category = piece_colors or {}
     for category_key, query_string in search_plan.items():
         color_for_cat = color_by_category.get(category_key) or color_str
-        retailer_listings = _build_retailer_listings(category_key, query_string, gender_target, color_for_cat, style)
-
-        if retailer_listings:
-            listing_payload = _compose_listing_payload(category_key, retailer_listings, color_for_cat)
-            if listing_payload:
-                final_outfit[category_key] = listing_payload
-                continue
-
-        fallback_query = f"{query_string} {selected_brand} {buy_trigger} {negative_terms}".strip()
-        results = _search_google_cse(fallback_query, gender_target)
-        if results:
-            main_item = results[0]
-            main_item['category'] = category_key
-            main_item['alternatives'] = results[1:] if len(results) > 1 else []
-            final_outfit[category_key] = main_item
-            continue
-
-        print(f"⚠️ Link-uri invalide. Folosesc MOCK sigur pentru {category_key}")
-        if category_key in MOCK_WEB_OUTFIT:
-            mock = MOCK_WEB_OUTFIT[category_key].copy()
-            mock['category'] = category_key
-            final_outfit[category_key] = mock
+        category_outfit = _resolve_category_outfit(
+            category_key,
+            query_string,
+            gender_target,
+            color_for_cat,
+            style,
+            selected_brand,
+            negative_terms,
+            buy_trigger,
+        )
+        if category_outfit:
+            final_outfit[category_key] = category_outfit
+        else:
+            print(f"⚠️ Link-uri invalide. Folosesc MOCK sigur pentru {category_key}")
 
     return final_outfit
 

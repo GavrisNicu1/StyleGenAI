@@ -27,7 +27,7 @@ api.interceptors.response.use(
       // Handle logout or refresh logic
       await AsyncStorage.multiRemove(['auth_token', 'auth_user']);
     }
-    return Promise.reject(error);
+    throw error;
   }
 );
 

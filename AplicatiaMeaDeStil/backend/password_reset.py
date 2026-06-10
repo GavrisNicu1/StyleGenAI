@@ -3,7 +3,7 @@ Password Reset Module - Secure token-based password reset functionality
 """
 import secrets
 import hashlib
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from database import execute_query, execute_query_one
 from auth import hash_password, verify_password
 from email_service import send_password_reset_email, send_password_changed_notification, is_email_configured
@@ -82,7 +82,7 @@ def create_password_reset_request(email: str) -> dict:
     # Generate new token
     plain_token = generate_reset_token()
     hashed_token = hash_token(plain_token)
-    expires_at = datetime.utcnow() + timedelta(hours=RESET_TOKEN_EXPIRATION_HOURS)
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=RESET_TOKEN_EXPIRATION_HOURS)
     
     # Store hashed token in database
     insert_query = """
@@ -119,7 +119,7 @@ def validate_reset_token(token: str) -> dict:
     Returns:
         dict: Validation result with user_id if valid
     """
-    print(f"[PASSWORD_RESET] Validating token...")
+    print("[PASSWORD_RESET] Validating token...")
     
     hashed_token = hash_token(token)
     
@@ -150,7 +150,10 @@ def validate_reset_token(token: str) -> dict:
         }
     
     # Check if expired
-    if datetime.utcnow() > expires_at:
+    if getattr(expires_at, 'tzinfo', None) is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+
+    if datetime.now(timezone.utc) > expires_at:
         print(f"[PASSWORD_RESET] Token expired at {expires_at}")
         return {
             'valid': False,

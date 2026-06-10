@@ -7,14 +7,14 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedButton } from '@/components/ui/ThemedButton';
 import { ThemedInput } from '@/components/ui/ThemedInput';
 import { Colors } from '@/constants/theme';
-import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import LoadingTShirt from '@/components/LoadingTShirt';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(''); // Ensure error is string
   const [showPassword, setShowPassword] = useState(false);
   
   const { login } = useAuth();
@@ -32,10 +32,12 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       await login(email, password);
-      // Navigation is handled by the AuthContext or layout usually, but for safety:
       router.replace('/(tabs)');
     } catch (err: any) {
-      setError('Autentificare eșuată. Verifică datele introduse.');
+      console.log('Login Error:', err);
+      // Ensure we display a string
+      const errorMessage = typeof err === 'string' ? err : (err.message || 'Autentificare eșuată. Verifică datele.');
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -45,16 +47,20 @@ export default function LoginScreen() {
     <ThemedView style={styles.container}>
       <KeyboardAvoidingView
         style={styles.content}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <View style={styles.headerContainer}>
-          <Ionicons name="shirt" size={60} color={Colors.light.secondary} style={styles.logoIcon} />
-          <ThemedText type="goldTitle" style={styles.title}>StyleGenAI</ThemedText>
-          <ThemedText style={styles.subtitle}>Bine ai revenit!</ThemedText>
+          <LoadingTShirt /> 
+          <ThemedText type="title" style={styles.title}>StyleGenAI</ThemedText>
+          <ThemedText style={styles.subtitle}>Elegance powered by Intelligence</ThemedText>
         </View>
 
         <View style={styles.formContainer}>
-          {error ? <ThemedText style={styles.errorText}>{error}</ThemedText> : null}
+          {error ? (
+            <ThemedText style={styles.errorText}>
+              {error}
+            </ThemedText>
+          ) : null}
 
           <ThemedInput
             label="Email"
@@ -63,8 +69,7 @@ export default function LoginScreen() {
             onChangeText={setEmail}
             autoCapitalize="none"
             keyboardType="email-address"
-            // leftIcon={<Ionicons name="mail-outline" size={20} color={Colors.light.icon} />}
-            error={error && !email ? 'Câmp obligatoriu' : undefined}
+            inputContainerStyle={styles.pillInput}
           />
 
           <ThemedInput
@@ -73,21 +78,19 @@ export default function LoginScreen() {
             value={password}
             onChangeText={setPassword}
             secureTextEntry={!showPassword}
-            rightIcon={
-              <Ionicons 
-                name={showPassword ? "eye-off-outline" : "eye-outline"} 
-                size={20} 
-                color={Colors.light.icon} 
-              />
-            }
+            inputContainerStyle={styles.pillInput}
+            rightIcon={showPassword ? "eye-off-outline" : "eye-outline"}
             onRightIconPress={() => setShowPassword(!showPassword)}
           />
 
+          <View style={styles.spacer} />
+
           <ThemedButton 
-            title="Autentificare" 
+            title={loading ? "Se autentifică..." : "Autentificare"}
             onPress={handleLogin} 
             loading={loading}
             style={styles.loginButton}
+            textStyle={styles.loginButtonText}
           />
 
           <ThemedButton 
@@ -107,7 +110,7 @@ export default function LoginScreen() {
           <ThemedButton 
             title="Creează cont nou" 
             onPress={() => router.push('/auth/signup')} 
-            type="outline"
+            type="outline" // This now supports gold/tint color on dark mode
           />
         </View>
       </KeyboardAvoidingView>
@@ -128,57 +131,79 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 40,
   },
-  logoIcon: {
-    marginBottom: 16,
-    shadowColor: Colors.light.secondary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-  },
   title: {
+    marginTop: 20,
     marginBottom: 8,
     textAlign: 'center',
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: Colors.light.primary, 
   },
   subtitle: {
-    fontSize: 16,
-    opacity: 0.7,
+    fontSize: 14,
+    color: Colors.light.secondary, 
     textAlign: 'center',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
   },
   formContainer: {
     width: '100%',
   },
-  loginButton: {
-    marginTop: 8,
-    marginBottom: 12,
+  pillInput: {
+    borderRadius: 30, // True pill shape
+    paddingHorizontal: 20,
   },
-  forgotButton: {
-    alignSelf: 'center',
-    marginBottom: 24,
-    minHeight: 0,
-    paddingVertical: 8,
-  },
-  forgotButtonText: {
-    fontSize: 14,
-    fontWeight: 'normal',
+  spacer: {
+    height: 16,
   },
   errorText: {
     color: '#D32F2F',
     marginBottom: 16,
     textAlign: 'center',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  loginButton: {
+    marginBottom: 16,
+    height: 54, // Taller button
+    shadowColor: Colors.light.secondary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  loginButtonText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
+  },
+  forgotButton: {
+    alignSelf: 'center',
+    marginBottom: 24,
+    minHeight: 0,
+    paddingVertical: 4,
+  },
+  forgotButtonText: {
+    fontSize: 14,
+    fontWeight: '500', 
+    opacity: 0.7,
   },
   dividerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 24,
+    paddingHorizontal: 10,
   },
   dividerLine: {
     flex: 1,
     height: 1,
+    opacity: 0.2,
   },
   dividerText: {
     marginHorizontal: 16,
-    fontSize: 14,
-    opacity: 0.6,
+    fontSize: 12,
+    opacity: 0.5,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
 });

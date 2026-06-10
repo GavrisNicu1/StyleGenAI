@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, RefreshControl, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, RefreshControl, Alert, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
 import { API_BASE_URL } from '@/constants/config';
@@ -13,6 +13,67 @@ interface Outfit {
   liked: boolean;
   created_at: string;
 }
+
+const getHistoryImageUrl = (imageUrl: string) => {
+  if (imageUrl.startsWith('http')) {
+    return imageUrl;
+  }
+  const cleanPath = imageUrl.startsWith('/') ? imageUrl.substring(1) : imageUrl;
+  return `${API_BASE_URL}/${cleanPath}`;
+};
+
+type HistoryOutfitCardProps = {
+  item: Outfit;
+  onOpen: (id: number) => void;
+  onToggleLike: (id: number) => void;
+  onDelete: (id: number) => void;
+};
+
+const HistoryOutfitCard: React.FC<HistoryOutfitCardProps> = ({ item, onOpen, onToggleLike, onDelete }) => {
+  const fullImageUrl = getHistoryImageUrl(item.image_url);
+
+  const handleLikePress = (e: any) => {
+    e.stopPropagation();
+    onToggleLike(item.id);
+  };
+
+  const handleDeletePress = (e: any) => {
+    e.stopPropagation();
+    onDelete(item.id);
+  };
+
+  return (
+    <TouchableOpacity
+      style={styles.card}
+      onPress={() => onOpen(item.id)}
+      activeOpacity={0.8}
+    >
+      <Image
+        source={{ uri: fullImageUrl }}
+        style={styles.image}
+        resizeMode="cover"
+        onError={(error) => console.error('[HistoryScreen] Image load error:', error.nativeEvent.error)}
+      />
+      <View style={styles.cardFooter}>
+        <Text style={styles.date}>
+          {new Date(item.created_at).toLocaleDateString()}
+        </Text>
+        <View style={styles.actions}>
+          <TouchableOpacity onPress={handleLikePress} style={styles.actionButton}>
+            <Ionicons
+              name={item.liked ? 'heart' : 'heart-outline'}
+              size={24}
+              color={item.liked ? '#ff4444' : '#666'}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleDeletePress} style={styles.actionButton}>
+            <Ionicons name="trash-outline" size={24} color="#666" />
+          </TouchableOpacity>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+};
 
 export default function HistoryScreen() {
   const [outfits, setOutfits] = useState<Outfit[]>([]);
@@ -88,19 +149,35 @@ export default function HistoryScreen() {
           )
         );
       }
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Could not update like status');
     }
   };
 
-  const deleteOutfit = async (outfitId: number) => {
-    // Use window.confirm for web compatibility
-    const confirmed = window.confirm('Sigur vrei să ștergi acest outfit?');
-    
-    if (!confirmed) {
+  const confirmDelete = (outfitId: number, onConfirm: () => void) => {
+    if (Platform.OS === 'web') {
+      const confirmed = globalThis.confirm('Sigur vrei să ștergi acest outfit?');
+      if (confirmed) {
+        onConfirm();
+      }
       return;
     }
 
+    Alert.alert('Sterge tinuta', 'Sigur vrei sa stergi acest outfit?', [
+      { text: 'Anuleaza', style: 'cancel' },
+      { text: 'Sterge', style: 'destructive', onPress: onConfirm },
+    ]);
+  };
+
+  const notifyMessage = (message: string) => {
+    if (Platform.OS === 'web') {
+      globalThis.alert(message);
+      return;
+    }
+    Alert.alert('Info', message);
+  };
+
+  const executeDeleteOutfit = async (outfitId: number) => {
     try {
       console.log('[HistoryScreen] Deleting outfit:', outfitId);
       const response = await fetch(`${API_BASE_URL}/outfits/${outfitId}`, {
@@ -112,78 +189,76 @@ export default function HistoryScreen() {
 
       const data = await response.json();
       console.log('[HistoryScreen] Delete response:', data);
-      
+
       if (data.status === 'success') {
         console.log('[HistoryScreen] Delete successful, removing from list');
-        // Remove from local state
         setOutfits(prev => prev.filter(outfit => outfit.id !== outfitId));
-        alert('✓ Outfit-ul a fost șters cu succes');
-      } else {
-        console.log('[HistoryScreen] Delete failed:', data.message);
-        alert('Eroare: ' + (data.message || 'Nu s-a putut șterge outfit-ul'));
+        notifyMessage('Outfit-ul a fost sters cu succes');
+        return;
       }
+
+      console.log('[HistoryScreen] Delete failed:', data.message);
+      notifyMessage('Eroare: ' + (data.message || 'Nu s-a putut sterge outfit-ul'));
     } catch (error) {
       console.error('[HistoryScreen] Delete error:', error);
-      alert('Eroare: Nu s-a putut șterge outfit-ul');
+      notifyMessage('Eroare: Nu s-a putut sterge outfit-ul');
     }
+  };
+
+  const renderHistoryContent = () => {
+    if (loading) {
+      return (
+        <View style={styles.centered}>
+          <Text>Loading...</Text>
+        </View>
+      );
+    }
+
+    if (outfits.length === 0) {
+      return (
+        <View style={styles.centered}>
+          <Ionicons name="images-outline" size={64} color="#ccc" />
+          <Text style={styles.emptyText}>{emptyStateText}</Text>
+        </View>
+      );
+    }
+
+    return (
+      <FlatList
+        data={outfits}
+        renderItem={renderOutfit}
+        keyExtractor={item => item.id.toString()}
+        numColumns={2}
+        contentContainerStyle={styles.list}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      />
+    );
+  };
+
+  const deleteOutfit = async (outfitId: number) => {
+    confirmDelete(outfitId, () => {
+      void executeDeleteOutfit(outfitId);
+    });
+  };
+
+  const openOutfit = (outfitId: number) => {
+    router.push(`/(tabs)/outfit-detail?id=${outfitId}`);
   };
 
   const renderOutfit = ({ item }: { item: Outfit }) => {
-    // Handle image URL - if it already contains http, use as is, otherwise prepend API_BASE_URL
-    let fullImageUrl = item.image_url;
-    
-    if (!item.image_url.startsWith('http')) {
-      // Remove leading slash if present to avoid double slashes
-      const cleanPath = item.image_url.startsWith('/') ? item.image_url.substring(1) : item.image_url;
-      fullImageUrl = `${API_BASE_URL}/${cleanPath}`;
-    }
-    
-    console.log('[HistoryScreen] Rendering outfit:', item.id, 'Image URL:', fullImageUrl);
-
     return (
-      <TouchableOpacity 
-        style={styles.card}
-        onPress={() => router.push(`/(tabs)/outfit-detail?id=${item.id}`)}
-        activeOpacity={0.8}
-      >
-        <Image
-          source={{ uri: fullImageUrl }}
-          style={styles.image}
-          resizeMode="cover"
-          onError={(error) => console.error('[HistoryScreen] Image load error:', error.nativeEvent.error)}
-        />
-        <View style={styles.cardFooter}>
-          <Text style={styles.date}>
-            {new Date(item.created_at).toLocaleDateString()}
-          </Text>
-          <View style={styles.actions}>
-            <TouchableOpacity 
-              onPress={(e) => {
-                e.stopPropagation();
-                toggleLike(item.id);
-              }} 
-              style={styles.actionButton}
-            >
-              <Ionicons
-                name={item.liked ? 'heart' : 'heart-outline'}
-                size={24}
-                color={item.liked ? '#ff4444' : '#666'}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity 
-              onPress={(e) => {
-                e.stopPropagation();
-                deleteOutfit(item.id);
-              }} 
-              style={styles.actionButton}
-            >
-              <Ionicons name="trash-outline" size={24} color="#666" />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </TouchableOpacity>
+      <HistoryOutfitCard
+        item={item}
+        onOpen={openOutfit}
+        onToggleLike={toggleLike}
+        onDelete={deleteOutfit}
+      />
     );
   };
+
+  const emptyStateText = filter === 'liked' ? 'No liked outfits yet' : 'No saved outfits yet';
 
   if (!isAuthenticated) {
     return (
@@ -219,29 +294,7 @@ export default function HistoryScreen() {
         </View>
       </View>
 
-      {loading ? (
-        <View style={styles.centered}>
-          <Text>Loading...</Text>
-        </View>
-      ) : outfits.length === 0 ? (
-        <View style={styles.centered}>
-          <Ionicons name="images-outline" size={64} color="#ccc" />
-          <Text style={styles.emptyText}>
-            {filter === 'liked' ? 'No liked outfits yet' : 'No saved outfits yet'}
-          </Text>
-        </View>
-      ) : (
-        <FlatList
-          data={outfits}
-          renderItem={renderOutfit}
-          keyExtractor={item => item.id.toString()}
-          numColumns={2}
-          contentContainerStyle={styles.list}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-        />
-      )}
+      {renderHistoryContent()}
     </View>
   );
 }

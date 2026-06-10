@@ -1,66 +1,84 @@
 import React, { useState } from 'react';
-import { StyleSheet, TextInput, TextInputProps, View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { StyleSheet, TextInput, TextInputProps, View, Text, TouchableOpacity, ActivityIndicator, ViewStyle, useColorScheme } from 'react-native';
 import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme'; // Or standard useColorScheme
+import { Ionicons } from '@expo/vector-icons';
 
 interface ThemedInputProps extends TextInputProps {
   label?: string;
   error?: string;
   containerStyle?: ViewStyle;
-  rightIcon?: React.ReactNode;
+  inputContainerStyle?: ViewStyle;
+  rightIcon?: keyof typeof Ionicons.glyphMap;
   onRightIconPress?: () => void;
   loading?: boolean;
 }
+
+type ReadonlyThemedInputProps = Readonly<ThemedInputProps>;
 
 export function ThemedInput({
   label,
   error,
   containerStyle,
+  inputContainerStyle,
   rightIcon,
   onRightIconPress,
   loading,
   style,
   ...props
-}: ThemedInputProps) {
+}: ReadonlyThemedInputProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const themeColors = Colors[isDark ? 'dark' : 'light'];
   
-  // Gucci Input Style: 
-  // Light Mode: Cream background, Navy text.
-  // Dark Mode: Dark Green background, Cream text.
-  const inputBg = isDark ? '#1A2C24' : '#FFFFFF'; 
-
   const [isFocused, setIsFocused] = useState(false);
 
-  const borderColor = error
-    ? '#B01824' // Gucci Red for Error
-    : isFocused
-    ? '#C5A059' // Gucci Gold on Focus
-    : isDark ? '#3E4E42' : '#CED4DA'; // Subtle border
+  // Determine styles based on state
+  let borderColor = 'transparent';
+  if (error) {
+    borderColor = '#D32F2F';
+  } else if (isFocused) {
+    borderColor = themeColors.tint;
+  }
 
+  const backgroundColor = isDark ? '#1E1E1E' : '#FFFFFF';
+  
   return (
     <View style={[styles.container, containerStyle]}>
       {label && <Text style={[styles.label, { color: themeColors.text }]}>{label}</Text>}
-      <View style={[styles.inputContainer, { borderColor, backgroundColor: inputBg }]}>
+      
+      <View style={[
+        styles.inputContainer, 
+        { 
+          backgroundColor,
+          borderColor,
+          borderWidth: isFocused || error ? 1.5 : 0, 
+        },
+        inputContainerStyle
+      ]}>
         <TextInput
           style={[styles.input, { color: themeColors.text }, style]} 
-          placeholderTextColor={isDark ? '#8F9B94' : '#6C757D'}
+          placeholderTextColor={isDark ? '#888' : '#999'}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
-          selectionColor={'#B01824'} // Gucci Red Cursor
+          selectionColor={themeColors.tint}
           {...props}
         />
+        
         {(rightIcon || loading) && (
           <TouchableOpacity 
             onPress={onRightIconPress} 
             disabled={loading || !onRightIconPress}
-            style={styles.rightIcon}
+            style={styles.iconContainer}
           >
-            {loading ? <ActivityIndicator size="small" color={themeColors.secondary} /> : rightIcon}
+            {loading ? (
+              <ActivityIndicator size="small" color={themeColors.tint} />
+            ) : (
+              <Ionicons name={rightIcon} size={20} color={isFocused ? themeColors.tint : '#888'} />
+            )}
           </TouchableOpacity>
         )}
       </View>
+      
       {error && <Text style={styles.errorText}>{error}</Text>}
     </View>
   );
@@ -73,32 +91,42 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
     marginBottom: 8,
+    marginLeft: 4,
     opacity: 0.9,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    minHeight: 52,
+    borderRadius: 12, // Default
+    paddingHorizontal: 16,
+    minHeight: 56,
+    // Add shadow for better visibility on light mode/clean look on dark
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 3.84,
+    elevation: 2,
   },
   input: {
     flex: 1,
     fontSize: 16,
-    paddingVertical: 12, // Ensure good touch target
+    paddingVertical: 12,
     height: '100%',
   },
-  rightIcon: {
+  iconContainer: {
     marginLeft: 10,
     padding: 4,
   },
   errorText: {
     color: '#D32F2F',
     fontSize: 12,
-    marginTop: 4,
-    marginLeft: 4,
+    marginTop: 6,
+    marginLeft: 6,
+    fontWeight: '500',
   },
 });

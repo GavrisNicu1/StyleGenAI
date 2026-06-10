@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
@@ -89,7 +90,7 @@ export default function OutfitDetailScreen() {
       if (data.status === 'success') {
         setOutfit(prev => prev ? { ...prev, liked: data.liked } : null);
       }
-    } catch (error) {
+    } catch {
       Alert.alert('Eroare', 'Nu s-a putut actualiza statusul');
     }
   };
@@ -97,11 +98,22 @@ export default function OutfitDetailScreen() {
   const deleteOutfit = () => {
     if (!outfit) return;
 
-    const confirmed = window.confirm('Sigur vrei să ștergi această ținută?');
-    
-    if (confirmed) {
-      handleDelete();
+    if (Platform.OS === 'web') {
+      const confirmed = globalThis.confirm('Sigur vrei să ștergi această ținută?');
+      if (confirmed) {
+        handleDelete();
+      }
+      return;
     }
+
+    Alert.alert(
+      'Confirmare',
+      'Sigur vrei să ștergi această ținută?',
+      [
+        { text: 'Anulează', style: 'cancel' },
+        { text: 'Șterge', style: 'destructive', onPress: handleDelete },
+      ]
+    );
   };
 
   const handleDelete = async () => {
@@ -163,13 +175,6 @@ export default function OutfitDetailScreen() {
         </View>
       </View>
     );
-  }
-
-  // Handle image URL
-  let fullImageUrl = outfit.image_url;
-  if (!outfit.image_url.startsWith('http')) {
-    const cleanPath = outfit.image_url.startsWith('/') ? outfit.image_url.substring(1) : outfit.image_url;
-    fullImageUrl = `${API_BASE_URL}/${cleanPath}`;
   }
 
   return (
@@ -370,8 +375,8 @@ export default function OutfitDetailScreen() {
           <View style={styles.infoSection}>
             <Text style={styles.sectionTitle}>Culori Dominante</Text>
             <View style={styles.colorsContainer}>
-              {outfit.style_data.analysis.dominant_colors.map((color, index) => (
-                <View key={index} style={styles.colorChip}>
+              {outfit.style_data.analysis.dominant_colors.map((color) => (
+                <View key={String(color)} style={styles.colorChip}>
                   <Text style={styles.colorText}>{color}</Text>
                 </View>
               ))}

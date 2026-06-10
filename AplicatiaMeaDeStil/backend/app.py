@@ -47,7 +47,37 @@ from ai_metrics import (
 
 # ---------------- Config de bază ----------------
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*"}})  # restrânge în producție
+
+
+def _parse_cors_origins(value: str) -> List[str]:
+    """Parsează lista de origini separată prin virgulă."""
+    if not value:
+        return []
+    return [origin.strip().rstrip("/") for origin in value.split(",") if origin.strip()]
+
+
+APP_ENV = os.getenv("APP_ENV", "development").lower()
+
+# În producție setează explicit CORS_ALLOWED_ORIGINS
+# Ex: https://app.stylegenai.ro,https://admin.stylegenai.ro
+_env_origins = _parse_cors_origins(os.getenv("CORS_ALLOWED_ORIGINS", ""))
+
+if _env_origins:
+    cors_origins: List[str] = _env_origins
+elif APP_ENV == "production":
+    cors_origins = []
+else:
+    # Dev defaults: localhost + loopback pe porturile uzuale de frontend
+    cors_origins = [
+        r"^https?://localhost(:\d+)?$",
+        r"^https?://127\.0\.0\.1(:\d+)?$",
+    ]
+
+if cors_origins:
+    CORS(app, resources={r"/*": {"origins": cors_origins}})
+else:
+    # Fără allowlist explicit în producție: CORS blocat by default.
+    CORS(app, resources={r"/*": {"origins": []}})
 
 BASE_DIR = os.path.dirname(__file__)
 UPLOAD_FOLDER = os.path.join(BASE_DIR, "uploads")
@@ -59,6 +89,7 @@ app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024
 
 ALLOWED_MIME = {"image/jpeg", "image/png", "image/webp"}
+AUTH_BEARER_PREFIX = "Bearer "
 
 
 def _is_allowed(file) -> bool:
@@ -72,8 +103,53 @@ def _to_rel(p: str) -> str:
     return rel
 
 
+def _extract_optional_user_id() -> Optional[int]:
+    try:
+        auth_header = request.headers.get('Authorization')
+        if auth_header and auth_header.startswith(AUTH_BEARER_PREFIX):
+            token = auth_header.split(' ', 1)[1]
+            user_data = verify_jwt_token(token)
+            if user_data:
+                return user_data.get('user_id')
+    except Exception:
+        return None
+    return None
+
+
+def _build_item_data(file, category_from_user: str) -> Dict[str, Any]:
+    if not _is_allowed(file):
+        raise ValueError(f"Tip fișier neacceptat pentru {file.filename}")
+
+    ext = os.path.splitext(file.filename)[1] or ".jpg"
+    unique_name = f"{uuid.uuid4()}{ext}"
+    file_path = os.path.join(UPLOAD_FOLDER, unique_name)
+    file.save(file_path)
+
+    transparent_path = file_path
+    try:
+        from rembg import remove
+        with Image.open(file_path) as im:
+            cut = remove(im)
+            transparent_name = f"transparent_{uuid.uuid4()}.png"
+            transparent_path = os.path.join(UPLOAD_FOLDER, transparent_name)
+            cut.save(transparent_path)
+    except Exception:
+        pass
+
+    image_info = process_image_color(transparent_path)
+    style_prediction = classify_style(file_path)
+    text_logo = extract_text(file_path)
+
+    image_info["original_path"] = _to_rel(file_path)
+    image_info["transparent_path"] = _to_rel(transparent_path)
+    image_info["type_from_user"] = category_from_user
+    image_info["style"] = style_prediction
+    image_info["text_logo"] = text_logo
+    return image_info
+
+
 # ---------------- Static + health ----------------
-@app.route("/uploads/<path:filename>")
+@app.route("/uploads/<path:filename>", methods=["GET"])
 def send_file_uploads(filename: str):
     return send_from_directory(UPLOAD_FOLDER, filename)
 
@@ -88,18 +164,7 @@ def health() -> Any:
 def get_suggestion():
     import time
     start_time = time.time()
-    
-    # Get user_id from token if authenticated
-    user_id = None
-    try:
-        auth_header = request.headers.get('Authorization')
-        if auth_header and auth_header.startswith('Bearer '):
-            token = auth_header.split(' ')[1]
-            user_data = verify_jwt_token(token)
-            if user_data:
-                user_id = user_data.get('user_id')
-    except Exception:
-        pass
+    user_id = _extract_optional_user_id()
     
     if "files" not in request.files:
         return jsonify({"status": "error", "message": "Lipsește 'files'"}), 400
@@ -120,38 +185,10 @@ def get_suggestion():
     item_data: List[Dict[str, Any]] = []
 
     for file, category_from_user in zip(uploaded_files, categories):
-        if not _is_allowed(file):
-            return jsonify({"status": "error", "message": f"Tip fișier neacceptat pentru {file.filename}"}), 400
-
-        ext = os.path.splitext(file.filename)[1] or ".jpg"
-        unique_name = f"{uuid.uuid4()}{ext}"
-        file_path = os.path.join(UPLOAD_FOLDER, unique_name)
-        file.save(file_path)
-
-        # Optional: decupare fundal (rembg); dacă eșuează, păstrăm originalul
-        transparent_path = file_path
         try:
-            from rembg import remove  # opțional
-            with Image.open(file_path) as im:
-                cut = remove(im)
-                transparent_name = f"transparent_{uuid.uuid4()}.png"
-                transparent_path = os.path.join(UPLOAD_FOLDER, transparent_name)
-                cut.save(transparent_path)
-        except Exception:
-            pass
-
-        # Analize de bază (culoare, stil, text/logo)
-        image_info = process_image_color(transparent_path)   # color aware de alpha
-        style_prediction = classify_style(file_path)
-        text_logo = extract_text(file_path)
-
-        image_info["original_path"] = _to_rel(file_path)
-        image_info["transparent_path"] = _to_rel(transparent_path)
-        image_info["type_from_user"] = category_from_user
-        image_info["style"] = style_prediction
-        image_info["text_logo"] = text_logo
-
-        item_data.append(image_info)
+            item_data.append(_build_item_data(file, category_from_user))
+        except ValueError as exc:
+            return jsonify({"status": "error", "message": str(exc)}), 400
 
     filters = {"style": style_filter, "season": season, "gender": gender, "silhouette": silhouette}
     print(f"[INFO] Generez ținuta pentru filtre: {filters}")
@@ -202,8 +239,8 @@ def web_outfit():
     user_id = None
     try:
         auth_header = request.headers.get('Authorization')
-        if auth_header and auth_header.startswith('Bearer '):
-            token = auth_header.split(' ')[1]
+        if auth_header and auth_header.startswith(AUTH_BEARER_PREFIX):
+            token = auth_header.split(' ', 1)[1]
             user_data = verify_jwt_token(token)
             if user_data:
                 user_id = user_data.get('user_id')
@@ -459,7 +496,7 @@ def auth_reset_password():
         token = data.get("token", "").strip()
         new_password = data.get("new_password", "")
         
-        print(f"[PASSWORD_RESET] Attempting password reset with token")
+        print("[PASSWORD_RESET] Attempting password reset with token")
         
         if not token:
             return jsonify({"status": "error", "message": "Token lipsă"}), 400
@@ -481,7 +518,6 @@ def auth_reset_password():
 @app.get("/auth/reset-password-page")
 def auth_reset_password_page():
     """Serve the password reset HTML page"""
-    token = request.args.get("token", "")
     return send_from_directory(os.path.join(BASE_DIR, "templates"), "reset-password.html")
 
 
@@ -490,10 +526,10 @@ def auth_me():
     """Get current user from token"""
     try:
         auth_header = request.headers.get("Authorization", "")
-        if not auth_header.startswith("Bearer "):
+        if not auth_header.startswith(AUTH_BEARER_PREFIX):
             return jsonify({"status": "error", "message": "Invalid authorization header"}), 401
         
-        token = auth_header.replace("Bearer ", "")
+        token = auth_header.split(" ", 1)[1]
         user = get_current_user(token)
         return jsonify({"status": "success", "user": user}), 200
     except Exception as e:
@@ -505,10 +541,10 @@ def auth_me():
 def _get_user_from_token():
     """Helper to extract user_id from JWT token"""
     auth_header = request.headers.get("Authorization", "")
-    if not auth_header.startswith("Bearer "):
-        raise Exception("Missing or invalid authorization header")
+    if not auth_header.startswith(AUTH_BEARER_PREFIX):
+        raise ValueError("Missing or invalid authorization header")
     
-    token = auth_header.replace("Bearer ", "")
+    token = auth_header.split(" ", 1)[1]
     payload = verify_jwt_token(token)
     return payload.get("user_id")
 
@@ -599,10 +635,10 @@ def outfits_get(outfit_id: int):
 def _get_admin_from_token():
     """Helper to verify admin access from JWT token"""
     auth_header = request.headers.get("Authorization", "")
-    if not auth_header.startswith("Bearer "):
-        raise Exception("Missing or invalid authorization header")
+    if not auth_header.startswith(AUTH_BEARER_PREFIX):
+        raise ValueError("Missing or invalid authorization header")
     
-    token = auth_header.replace("Bearer ", "")
+    token = auth_header.split(" ", 1)[1]
     admin_user = require_admin(token)
     return admin_user
 
@@ -676,4 +712,6 @@ def admin_ai_metrics():
 # ---------------- Entrypoint dev ----------------
 if __name__ == "__main__":
     # atenție: debug=True doar pentru dev
-   app.run(debug=True, host='0.0.0.0', port=5000)
+    run_host = os.getenv("FLASK_RUN_HOST", "127.0.0.1")
+    run_port = int(os.getenv("FLASK_RUN_PORT", "5000"))
+    app.run(debug=True, host=run_host, port=run_port)
