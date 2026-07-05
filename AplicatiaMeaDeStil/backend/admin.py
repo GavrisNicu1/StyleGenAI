@@ -27,31 +27,40 @@ def get_dashboard_stats() -> dict:
     def _pick(sqlite_query: str, mssql_query: str) -> str:
         return sqlite_query if db_type == 'sqlite' else mssql_query
 
-    def _count(query: str) -> int:
-        result = execute_query_one(query)
+    def _count(query: str, params=None) -> int:
+        result = execute_query_one(query, params)
         return result[0] if result else 0
 
-    stats['total_users'] = _count("SELECT COUNT(*) FROM users")
+    synthetic_pattern = 'feedback.user.%@example.com'
+
+    stats['total_users'] = _count(
+        "SELECT COUNT(*) FROM users WHERE email NOT LIKE ?",
+        (synthetic_pattern,),
+    )
     stats['new_users_today'] = _count(_pick(
         """
             SELECT COUNT(*) FROM users
             WHERE date(created_at) = date('now')
+              AND email NOT LIKE ?
         """,
         """
             SELECT COUNT(*) FROM users
             WHERE CAST(created_at AS DATE) = CAST(GETDATE() AS DATE)
+              AND email NOT LIKE ?
         """
-    ))
+    ), (synthetic_pattern,))
     stats['new_users_week'] = _count(_pick(
         """
             SELECT COUNT(*) FROM users
             WHERE created_at >= datetime('now', '-7 days')
+              AND email NOT LIKE ?
         """,
         """
             SELECT COUNT(*) FROM users
             WHERE created_at >= DATEADD(day, -7, GETDATE())
+              AND email NOT LIKE ?
         """
-    ))
+    ), (synthetic_pattern,))
 
     stats['total_outfits'] = _count("SELECT COUNT(*) FROM outfits")
     liked_count_val = _count("SELECT COUNT(*) FROM outfits WHERE liked = 1")
@@ -168,26 +177,31 @@ def get_top_users(limit: int = 5) -> list:
     Returns:
         list: List of user dictionaries with email and outfit count
     """
+    synthetic_pattern = 'feedback.user.%@example.com'
     db_type = os.getenv('DB_TYPE', 'mssql').lower()
     if db_type == 'sqlite':
         query = """
             SELECT u.email, COUNT(o.id) as outfit_count
             FROM users u
             LEFT JOIN outfits o ON u.id = o.user_id
+            WHERE u.email NOT LIKE ?
             GROUP BY u.email
             ORDER BY outfit_count DESC
             LIMIT ?
         """
+        params = (synthetic_pattern, limit)
     else:
         query = """
             SELECT TOP (?) u.email, COUNT(o.id) as outfit_count
             FROM users u
             LEFT JOIN outfits o ON u.id = o.user_id
+            WHERE u.email NOT LIKE ?
             GROUP BY u.email
             ORDER BY outfit_count DESC
         """
-    
-    results = execute_query(query, (limit,), fetch=True)
+        params = (limit, synthetic_pattern)
+
+    results = execute_query(query, params, fetch=True)
     
     top_users = []
     for row in results:
@@ -206,14 +220,16 @@ def get_all_users() -> list:
     Returns:
         list: List of user dictionaries
     """
+    synthetic_pattern = 'feedback.user.%@example.com'
     query = """
         SELECT id, email, role, created_at,
                (SELECT COUNT(*) FROM outfits WHERE user_id = users.id) as outfit_count
         FROM users
+        WHERE email NOT LIKE ?
         ORDER BY created_at DESC
     """
-    
-    results = execute_query(query, fetch=True)
+
+    results = execute_query(query, (synthetic_pattern,), fetch=True)
     
     users = []
     for row in results:

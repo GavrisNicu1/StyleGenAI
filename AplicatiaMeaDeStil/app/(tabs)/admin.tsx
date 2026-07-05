@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, RefreshControl, Alert } from 'react
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
 import { API_BASE_URL } from '@/constants/config';
-import { router } from 'expo-router';
+import { Redirect } from 'expo-router';
 
 interface DashboardStats {
   total_users: number;
@@ -59,7 +59,7 @@ interface AIMetrics {
 }
 
 export default function AdminScreen() {
-  const { isAdmin, isAuthenticated, token } = useAuth();
+  const { isAdmin, isAuthenticated, token, loading: authLoading } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [topUsers, setTopUsers] = useState<TopUser[]>([]);
   const [activityData, setActivityData] = useState<ActivityData[]>([]);
@@ -69,12 +69,10 @@ export default function AdminScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    if (!isAuthenticated || !isAdmin) {
-      router.replace('/(tabs)');
-      return;
-    }
+    if (authLoading) return;
+    if (!isAuthenticated || !isAdmin || !token) return;
     fetchDashboard();
-  }, [isAdmin, isAuthenticated]);
+  }, [authLoading, isAdmin, isAuthenticated, token]);
 
   const fetchDashboard = async () => {
     if (!token) return;
@@ -126,11 +124,23 @@ export default function AdminScreen() {
     fetchDashboard();
   };
 
+  if (authLoading) {
+    return (
+      <View style={styles.centered}>
+        <Text>Loading authentication...</Text>
+      </View>
+    );
+  }
+
   if (!isAuthenticated || !isAdmin) {
+    return <Redirect href='/(tabs)' />;
+  }
+
+  if (!token) {
     return (
       <View style={styles.centered}>
         <Ionicons name="shield-outline" size={64} color="#ccc" />
-        <Text style={styles.emptyText}>Admin access required</Text>
+        <Text style={styles.emptyText}>Missing authentication token</Text>
       </View>
     );
   }

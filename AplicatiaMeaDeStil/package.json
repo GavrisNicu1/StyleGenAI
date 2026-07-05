@@ -8,7 +8,12 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "dev:up": "powershell -ExecutionPolicy Bypass -File ./scripts/dev-up.ps1",
+    "dev:up:backend": "powershell -ExecutionPolicy Bypass -File ./scripts/dev-up.ps1 -NoExpo",
+    "dev:down": "powershell -ExecutionPolicy Bypass -File ./scripts/dev-down.ps1",
+    "backend:health": "powershell -Command \"Invoke-RestMethod -Uri 'http://localhost:5000/health' -Method Get | ConvertTo-Json\"",
+    "backend:logs": "docker compose logs -f backend"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",

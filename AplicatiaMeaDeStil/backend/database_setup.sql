@@ -36,6 +36,28 @@ CREATE INDEX idx_outfits_liked ON outfits(liked);
 CREATE INDEX idx_outfits_created_at ON outfits(created_at DESC);
 GO
 
+-- Outfit feedback table
+CREATE TABLE outfit_feedback (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    user_id INT NOT NULL,
+    is_liked BIT NOT NULL,
+    style NVARCHAR(50),
+    season NVARCHAR(50),
+    gender NVARCHAR(50),
+    top_category NVARCHAR(120),
+    bottom_category NVARCHAR(120),
+    shoes_category NVARCHAR(120),
+    top_color NVARCHAR(80),
+    bottom_color NVARCHAR(80),
+    shoes_color NVARCHAR(80),
+    created_at DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+GO
+
+CREATE INDEX idx_outfit_feedback_user_created_at ON outfit_feedback(user_id, created_at DESC);
+GO
+
 -- Trigger pentru update timestamp
 CREATE TRIGGER trg_users_update
 ON users

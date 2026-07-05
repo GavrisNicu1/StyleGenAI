@@ -27,6 +27,7 @@ from web_fetcher import get_web_outfit
 # Authentication & Outfits
 from auth import register_user, login_user, get_current_user, verify_jwt_token, require_admin
 from outfits import save_outfit, get_user_outfits, toggle_outfit_like, delete_outfit, get_outfit_by_id
+from feedback import save_outfit_feedback, get_user_feedback_summary
 from password_reset import create_password_reset_request, validate_reset_token, reset_password_with_token
 from database import execute_query_one
 from admin import (
@@ -88,12 +89,21 @@ os.makedirs(STATIC_FOLDER, exist_ok=True)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024
 
-ALLOWED_MIME = {"image/jpeg", "image/png", "image/webp"}
+ALLOWED_MIME = {"image/jpeg", "image/jpg", "image/png", "image/webp"}
+ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
+ENABLE_BG_REMOVAL = os.getenv("ENABLE_BG_REMOVAL", "0").strip().lower() in {"1", "true", "yes", "on"}
 AUTH_BEARER_PREFIX = "Bearer "
 
 
 def _is_allowed(file) -> bool:
-    return bool(file and getattr(file, "mimetype", None) in ALLOWED_MIME)
+    if not file:
+        return False
+    mime = getattr(file, "mimetype", None)
+    if mime in ALLOWED_MIME:
+        return True
+    filename = getattr(file, "filename", "") or ""
+    ext = os.path.splitext(filename)[1].lower()
+    return ext in ALLOWED_EXTENSIONS
 
 
 def _to_rel(p: str) -> str:
@@ -116,7 +126,7 @@ def _extract_optional_user_id() -> Optional[int]:
     return None
 
 
-def _build_item_data(file, category_from_user: str) -> Dict[str, Any]:
+def _build_item_data(file, category_from_user: str, raw_category_label: Optional[str] = None) -> Dict[str, Any]:
     if not _is_allowed(file):
         raise ValueError(f"Tip fișier neacceptat pentru {file.filename}")
 
@@ -126,15 +136,16 @@ def _build_item_data(file, category_from_user: str) -> Dict[str, Any]:
     file.save(file_path)
 
     transparent_path = file_path
-    try:
-        from rembg import remove
-        with Image.open(file_path) as im:
-            cut = remove(im)
-            transparent_name = f"transparent_{uuid.uuid4()}.png"
-            transparent_path = os.path.join(UPLOAD_FOLDER, transparent_name)
-            cut.save(transparent_path)
-    except Exception:
-        pass
+    if ENABLE_BG_REMOVAL:
+        try:
+            from rembg import remove
+            with Image.open(file_path) as im:
+                cut = remove(im)
+                transparent_name = f"transparent_{uuid.uuid4()}.png"
+                transparent_path = os.path.join(UPLOAD_FOLDER, transparent_name)
+                cut.save(transparent_path)
+        except Exception:
+            pass
 
     image_info = process_image_color(transparent_path)
     style_prediction = classify_style(file_path)
@@ -143,6 +154,7 @@ def _build_item_data(file, category_from_user: str) -> Dict[str, Any]:
     image_info["original_path"] = _to_rel(file_path)
     image_info["transparent_path"] = _to_rel(transparent_path)
     image_info["type_from_user"] = category_from_user
+    image_info["raw_category_label"] = (raw_category_label or category_from_user or "").strip()
     image_info["style"] = style_prediction
     image_info["text_logo"] = text_logo
     return image_info
@@ -171,6 +183,7 @@ def get_suggestion():
 
     uploaded_files = request.files.getlist("files")
     categories = request.form.getlist("categories")
+    category_labels = request.form.getlist("category_labels")
     style_filter = request.form.get("style_filter", "casual").lower()
     season = request.form.get("season", "toamna/primavara").lower()
     gender = request.form.get("gender", "barbati").lower()
@@ -184,9 +197,11 @@ def get_suggestion():
 
     item_data: List[Dict[str, Any]] = []
 
-    for file, category_from_user in zip(uploaded_files, categories):
+    for idx, file in enumerate(uploaded_files):
+        category_from_user = categories[idx]
+        raw_category_label = category_labels[idx] if idx < len(category_labels) else category_from_user
         try:
-            item_data.append(_build_item_data(file, category_from_user))
+            item_data.append(_build_item_data(file, category_from_user, raw_category_label))
         except ValueError as exc:
             return jsonify({"status": "error", "message": str(exc)}), 400
 
@@ -619,6 +634,33 @@ def outfits_delete(outfit_id: int):
         return jsonify({"status": "error", "message": str(e)}), 400
 
 
+@app.post("/feedback/outfit")
+def feedback_outfit():
+    """Save explicit like/dislike feedback for a generated outfit"""
+    try:
+        user_id = _get_user_from_token()
+        data = request.get_json(force=True, silent=True) or {}
+
+        if "is_liked" not in data:
+            return jsonify({"status": "error", "message": "is_liked is required"}), 400
+
+        result = save_outfit_feedback(user_id, data)
+        return jsonify(result), 201
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 400
+
+
+@app.get("/feedback/preferences")
+def feedback_preferences():
+    """Get simple aggregated preference summary from user feedback"""
+    try:
+        user_id = _get_user_from_token()
+        result = get_user_feedback_summary(user_id)
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 400
+
+
 @app.get("/outfits/<int:outfit_id>")
 def outfits_get(outfit_id: int):
     """Get a specific outfit by ID"""
@@ -712,6 +754,6 @@ def admin_ai_metrics():
 # ---------------- Entrypoint dev ----------------
 if __name__ == "__main__":
     # atenție: debug=True doar pentru dev
-    run_host = os.getenv("FLASK_RUN_HOST", "127.0.0.1")
+    run_host = os.getenv("FLASK_RUN_HOST", "0.0.0.0")
     run_port = int(os.getenv("FLASK_RUN_PORT", "5000"))
     app.run(debug=True, host=run_host, port=run_port)

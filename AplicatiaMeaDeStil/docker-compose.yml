@@ -1,0 +1,22 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    container_name: stylegenai-backend
+    ports:
+      - "5000:5000"
+    environment:
+      DB_TYPE: sqlite
+      DB_NAME: /app/data/stylegen.db
+      APP_ENV: development
+      CORS_ALLOWED_ORIGINS: http://localhost:8081,http://localhost:19006,http://localhost:3000
+      FLASK_RUN_HOST: 0.0.0.0
+      FLASK_RUN_PORT: 5000
+    volumes:
+      - ./backend/uploads:/app/uploads
+      - ./backend/static:/app/static
+      - backend_data:/app/data
+    restart: unless-stopped
+
+volumes:
+  backend_data:

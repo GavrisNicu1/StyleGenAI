@@ -16,6 +16,28 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    npx expo start
    ```
 
+## Local full-stack start (Docker backend + Expo)
+
+From this folder, use:
+
+```bash
+npm run dev:up
+```
+
+What it does:
+- Builds and starts backend with Docker Compose
+- Waits for backend health check on http://localhost:5000/health
+- Starts Expo in LAN mode for phone testing
+
+Useful commands:
+
+```bash
+npm run dev:up:backend
+npm run backend:health
+npm run backend:logs
+npm run dev:down
+```
+
 In the output, you'll find options to open the app in a
 
 - [development build](https://docs.expo.dev/develop/development-builds/introduction/)

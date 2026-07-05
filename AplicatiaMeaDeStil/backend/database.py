@@ -81,6 +81,27 @@ def init_sqlite_tables(conn):
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
     )
     ''')
+
+    # Create Outfit Feedback table
+    cursor.execute('''
+    CREATE TABLE IF NOT exists outfit_feedback (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        is_liked BOOLEAN NOT NULL,
+        style TEXT,
+        season TEXT,
+        gender TEXT,
+        top_category TEXT,
+        bottom_category TEXT,
+        shoes_category TEXT,
+        top_color TEXT,
+        bottom_color TEXT,
+        shoes_color TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+    ''')
+    cursor.execute('CREATE INDEX IF NOT exists idx_outfit_feedback_user_created ON outfit_feedback(user_id, created_at DESC)')
     
     conn.commit()
 

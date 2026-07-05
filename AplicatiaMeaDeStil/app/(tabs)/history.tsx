@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, RefreshControl, Alert, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
-import { API_BASE_URL } from '@/constants/config';
+import { API_BASE_URL, resolveBackendAssetUrl } from '@/constants/config';
 import { ProfileHeader } from '@/components/ProfileHeader';
 import { router } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 
 interface Outfit {
   id: number;
@@ -15,11 +16,7 @@ interface Outfit {
 }
 
 const getHistoryImageUrl = (imageUrl: string) => {
-  if (imageUrl.startsWith('http')) {
-    return imageUrl;
-  }
-  const cleanPath = imageUrl.startsWith('/') ? imageUrl.substring(1) : imageUrl;
-  return `${API_BASE_URL}/${cleanPath}`;
+  return resolveBackendAssetUrl(imageUrl, API_BASE_URL);
 };
 
 type HistoryOutfitCardProps = {
@@ -48,12 +45,18 @@ const HistoryOutfitCard: React.FC<HistoryOutfitCardProps> = ({ item, onOpen, onT
       onPress={() => onOpen(item.id)}
       activeOpacity={0.8}
     >
-      <Image
-        source={{ uri: fullImageUrl }}
-        style={styles.image}
-        resizeMode="cover"
-        onError={(error) => console.error('[HistoryScreen] Image load error:', error.nativeEvent.error)}
-      />
+      {/* Aici am adăugat "cușca" pentru a face imaginea responsive și ordonată */}
+      <View style={styles.imageContainer}>
+        <Image
+          source={{ uri: fullImageUrl }}
+          style={styles.image}
+          resizeMode="cover"
+          onError={(error) => {
+            console.warn('[HistoryScreen] Image load warning:', fullImageUrl, error.nativeEvent.error);
+          }}
+        />
+      </View>
+      
       <View style={styles.cardFooter}>
         <Text style={styles.date}>
           {new Date(item.created_at).toLocaleDateString()}
@@ -82,7 +85,7 @@ export default function HistoryScreen() {
   const [filter, setFilter] = useState<'all' | 'liked'>('all');
   const { token, isAuthenticated } = useAuth();
 
-  const fetchOutfits = async () => {
+  const fetchOutfits = useCallback(async () => {
     if (!isAuthenticated || !token) {
       setLoading(false);
       return;
@@ -93,7 +96,6 @@ export default function HistoryScreen() {
         ? `${API_BASE_URL}/outfits/history?liked_only=true`
         : `${API_BASE_URL}/outfits/history`;
 
-      console.log('[HistoryScreen] Fetching outfits from:', url);
       const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -101,30 +103,29 @@ export default function HistoryScreen() {
       });
 
       const data = await response.json();
-      console.log('[HistoryScreen] Response:', data);
       
       if (data.status === 'success') {
-        console.log('[HistoryScreen] Number of outfits:', data.outfits.length);
-        if (data.outfits.length > 0) {
-          console.log('[HistoryScreen] First outfit:', data.outfits[0]);
-          console.log('[HistoryScreen] First outfit image_url:', data.outfits[0].image_url);
-        }
         setOutfits(data.outfits);
       } else {
         Alert.alert('Error', data.message || 'Failed to load outfits');
       }
     } catch (error) {
-      console.error('[HistoryScreen] Fetch error:', error);
       Alert.alert('Error', 'Could not fetch outfits');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [filter, isAuthenticated, token]);
 
   useEffect(() => {
     fetchOutfits();
-  }, [filter, isAuthenticated]);
+  }, [fetchOutfits]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchOutfits();
+    }, [fetchOutfits])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -142,7 +143,6 @@ export default function HistoryScreen() {
 
       const data = await response.json();
       if (data.status === 'success') {
-        // Update local state
         setOutfits(prev =>
           prev.map(outfit =>
             outfit.id === outfitId ? { ...outfit, liked: data.liked } : outfit
@@ -179,7 +179,6 @@ export default function HistoryScreen() {
 
   const executeDeleteOutfit = async (outfitId: number) => {
     try {
-      console.log('[HistoryScreen] Deleting outfit:', outfitId);
       const response = await fetch(`${API_BASE_URL}/outfits/${outfitId}`, {
         method: 'DELETE',
         headers: {
@@ -188,19 +187,15 @@ export default function HistoryScreen() {
       });
 
       const data = await response.json();
-      console.log('[HistoryScreen] Delete response:', data);
 
       if (data.status === 'success') {
-        console.log('[HistoryScreen] Delete successful, removing from list');
         setOutfits(prev => prev.filter(outfit => outfit.id !== outfitId));
         notifyMessage('Outfit-ul a fost sters cu succes');
         return;
       }
 
-      console.log('[HistoryScreen] Delete failed:', data.message);
       notifyMessage('Eroare: ' + (data.message || 'Nu s-a putut sterge outfit-ul'));
     } catch (error) {
-      console.error('[HistoryScreen] Delete error:', error);
       notifyMessage('Eroare: Nu s-a putut sterge outfit-ul');
     }
   };
@@ -325,14 +320,14 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: '#fff', 
     borderWidth: 1, 
-    borderColor: '#D4AF37', // Auriu
+    borderColor: '#D4AF37', 
   },
   filterButtonActive: {
-    backgroundColor: '#115740', // Gucci Green
+    backgroundColor: '#115740', 
     borderColor: '#115740',
   },
   filterText: {
-    color: '#115740', // Gucci Green text for inactive
+    color: '#115740', 
     fontWeight: '600',
   },
   filterTextActive: {
@@ -353,10 +348,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
-  image: {
+  imageContainer: {
     width: '100%',
     height: 200,
+    overflow: 'hidden',
     backgroundColor: '#f0f0f0',
+  },
+  image: {
+    width: '100%',
+    height: '100%',
   },
   cardFooter: {
     padding: 12,

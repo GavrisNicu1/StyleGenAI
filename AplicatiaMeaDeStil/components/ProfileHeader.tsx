@@ -3,15 +3,18 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export function ProfileHeader() {
   const { isAuthenticated, user } = useAuth();
+  const insets = useSafeAreaInsets();
+  const topOffset = insets.top + 12;
 
   return (
-    <View style={styles.header}>
+    <View style={[styles.header, { top: topOffset }]}> 
       {isAuthenticated && user ? (
         <TouchableOpacity 
-          onPress={() => router.push('/(tabs)/profile')} 
+          onPress={() => router.navigate('/(tabs)/profile')} 
           style={styles.profileButton}
         >
           <Ionicons name="person-circle" size={24} color="#115740" />
@@ -32,7 +35,6 @@ export function ProfileHeader() {
 const styles = StyleSheet.create({
   header: {
     position: 'absolute',
-    top: 10,
     right: 10,
     zIndex: 100,
   },

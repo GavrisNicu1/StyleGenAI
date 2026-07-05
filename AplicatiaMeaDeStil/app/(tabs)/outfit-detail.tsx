@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
-import { API_BASE_URL } from '@/constants/config';
+import { API_BASE_URL, resolveBackendAssetUrl } from '@/constants/config';
 import { router, useLocalSearchParams } from 'expo-router';
 
 interface Outfit {
@@ -25,6 +25,7 @@ interface Outfit {
     silhouette?: string;
     pieces?: {
       top?: any;
+      outerwear?: any;
       bottom?: any;
       shoes?: any;
     };
@@ -37,6 +38,10 @@ interface Outfit {
   liked: boolean;
   created_at: string;
 }
+
+const getPieceImageUrl = (piecePath?: string | null) => {
+  return resolveBackendAssetUrl(piecePath, API_BASE_URL);
+};
 
 export default function OutfitDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -195,11 +200,18 @@ export default function OutfitDetailScreen() {
             {outfit.style_data.pieces?.top?.path && (
               <View style={styles.pieceImageContainer}>
                 <Image
-                  source={{ 
-                    uri: outfit.style_data.pieces.top.path.startsWith('http') 
-                      ? outfit.style_data.pieces.top.path 
-                      : `${API_BASE_URL}/${outfit.style_data.pieces.top.path.replace(/^\//, '')}`
-                  }}
+                  source={{ uri: getPieceImageUrl(outfit.style_data.pieces.top.path) }}
+                  style={styles.pieceImage}
+                  resizeMode="contain"
+                />
+              </View>
+            )}
+
+            {/* Outerwear */}
+            {outfit.style_data.pieces?.outerwear?.path && (
+              <View style={styles.pieceImageContainer}>
+                <Image
+                  source={{ uri: getPieceImageUrl(outfit.style_data.pieces.outerwear.path) }}
                   style={styles.pieceImage}
                   resizeMode="contain"
                 />
@@ -210,11 +222,7 @@ export default function OutfitDetailScreen() {
             {outfit.style_data.pieces?.bottom?.path && (
               <View style={styles.pieceImageContainer}>
                 <Image
-                  source={{ 
-                    uri: outfit.style_data.pieces.bottom.path.startsWith('http') 
-                      ? outfit.style_data.pieces.bottom.path 
-                      : `${API_BASE_URL}/${outfit.style_data.pieces.bottom.path.replace(/^\//, '')}`
-                  }}
+                  source={{ uri: getPieceImageUrl(outfit.style_data.pieces.bottom.path) }}
                   style={styles.pieceImage}
                   resizeMode="contain"
                 />
@@ -225,11 +233,7 @@ export default function OutfitDetailScreen() {
             {outfit.style_data.pieces?.shoes?.path && (
               <View style={styles.pieceImageContainer}>
                 <Image
-                  source={{ 
-                    uri: outfit.style_data.pieces.shoes.path.startsWith('http') 
-                      ? outfit.style_data.pieces.shoes.path 
-                      : `${API_BASE_URL}/${outfit.style_data.pieces.shoes.path.replace(/^\//, '')}`
-                  }}
+                  source={{ uri: getPieceImageUrl(outfit.style_data.pieces.shoes.path) }}
                   style={styles.pieceImage}
                   resizeMode="contain"
                 />
@@ -325,6 +329,21 @@ export default function OutfitDetailScreen() {
                   <View style={styles.colorRow}>
                     <Text style={styles.pieceLabel}>Culoare dominantă:</Text>
                     <Text style={styles.pieceText}>{outfit.style_data.pieces.top.dominant_color}</Text>
+                  </View>
+                )}
+              </View>
+            )}
+
+            {outfit.style_data.pieces.outerwear && (
+              <View style={styles.pieceCard}>
+                <Text style={styles.pieceTitle}>🧥 Strat exterior</Text>
+                {outfit.style_data.pieces.outerwear.name && (
+                  <Text style={styles.pieceText}>{outfit.style_data.pieces.outerwear.name}</Text>
+                )}
+                {outfit.style_data.pieces.outerwear.dominant_color && (
+                  <View style={styles.colorRow}>
+                    <Text style={styles.pieceLabel}>Culoare dominantă:</Text>
+                    <Text style={styles.pieceText}>{outfit.style_data.pieces.outerwear.dominant_color}</Text>
                   </View>
                 )}
               </View>

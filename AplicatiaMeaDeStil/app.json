@@ -38,7 +38,7 @@
       "favicon": "./assets/images/favicon.png"
     },
     "extra": {
-      "apiBaseUrl": "http://192.168.100.182:5000",
+      "apiBaseUrl": "auto",
       "apiBaseUrlWeb": "http://localhost:5000"
     },
     "plugins": [
